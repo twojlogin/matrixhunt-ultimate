@@ -8,7 +8,7 @@ aiohttp>=3.14.5
 beautifulsoup4>=4.15.0
 sqlalchemy>=2.0.0
 requests>=2.34.2
-itsdangerous>=2.1.0
+itsdangerous>=2.2.0
 PySocks>=1.7.0
 # TLS: certifi musi być aktualny (incydent eMudhra/emSign CA, X 2026).
 # requests używa certifi do weryfikacji certyfikatów - stara wersja = podatność.
