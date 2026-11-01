@@ -22,10 +22,10 @@ zero chmury, zero CDN. React, Babel i Ruffle są zvendorowane w `frontend/vendor
 
 ### Zabezpieczenia
 
-- **SSRF**: `/api/clean` blokuje `localhost`, `127.0.0.1`, `169.254.x.x`, `file://` i inne prywatne adresy.
-- **XSS**: wszystkie tytuły/opisy z trzecich stron są sanityzowane; skrypty i `on*=` usuwane (weryfikuj.py sprawdza).
+- **SSRF**: `/api/clean` i `/api/img` blokują prywatne adresy na każdym hopie; przy połączeniu bezpośrednim DNS jest przypinany do sprawdzonego publicznego IP. Ruch przez jawnie skonfigurowany proxy ufa jego stronie wyjściowej.
+- **Untrusted HTML**: skrypty, style, SVG/MathML i bezpośrednie zewnętrzne zasoby są usuwane; obrazy przechodzą przez walidujący `/api/img`, a odpowiedź ma restrykcyjne CSP.
 - **Path traversal**: `/data/...` blokuje `..` i dostęp do plików poza `data/`.
-- **CSRF**: cross-origin `Origin` blokowany na `/api/clean` i `/api/img`.
+- **API/CSRF**: w trybie lokalnym `/api/*` wymaga rzeczywistego loopback peer oraz loopback `Host`; cross-origin i cross-site są blokowane, a zapisy wymagają `X-MH-Token`. Proxy GET wymaga same-origin sygnału przeglądarki; formularze proxy mają token w akcji i middleware usuwa go przed przekazaniem żądania do sklepu.
 - **Token sesji**: zapisy wymagają nagłówka `X-MH-Token` z `/api/client-config` (losowany na start).
 - **CORS**: `allow_origins=[]` — obcy origin nie dostaje nagłówków.
 - **Ciasteczka**: per-host w `backend/.cookies/`, uprawnienia `0600`.
@@ -67,7 +67,7 @@ zmienia model bezpieczeństwa. Jeśli chcesz to zrobić (np. demo, self-hosting)
    ```bash
    MH_PUBLIC=1 MH_HOST=0.0.0.0 ./bootstrap.sh
    ```
-   W tym trybie endpointy POST/PUT/DELETE na `/api/*` zwracają 403.
+   Bez `MH_PUBLIC=1` uruchomienie z nie-loopback `MH_HOST` kończy się błędem. W trybie publicznym endpointy mutujące na `/api/*` zwracają 403, a żądania API nadal wymagają same-origin albo tokenu.
 3. **Cloudflare Access (Zero Trust)** — OBOWIĄZKOWE. Bez tego każdy kto zna URL
    ma dostęp. Ustaw politykę Allow → Emails → Twoje konto.
 4. **IP podczas scrapowania** — sklepy widzą Twoje IP. Włącz tryb Tor w ustawieniach

@@ -806,7 +806,7 @@ def test_Q16_clean_html_blokuje_obfuskowany_javascript():
     out, _, _ = clean_html(
         '<img srcset="java\tscript:alert(1) 1x, https://ex.com/a.png 2x">',
         "https://ex.com")
-    assert "javascript:" not in out and "ex.com/a.png" in out, out
+    assert "javascript:" not in out and "/api/img?url=https%3A%2F%2Fex.com%2Fa.png" in out, out
 
     out, _, _ = clean_html('<div style="background:url(java\tscript:alert(1))">x</div>',
                            "https://ex.com")
@@ -814,7 +814,6 @@ def test_Q16_clean_html_blokuje_obfuskowany_javascript():
 
     out, _, _ = clean_html('<a href="https://ex.com/gra">x</a>', "https://ex.com")
     assert 'href="https://ex.com/gra"' in out, out
-
 
 
 

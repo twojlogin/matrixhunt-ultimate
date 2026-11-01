@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^git --no-pager status --short && printf '\\\\n-- note locations --\\\\n' && find \\. -iname 'SAFE_RELEASE_NOTE\\*' -o -iname '\\*SAFE\\*RELEASE\\*'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

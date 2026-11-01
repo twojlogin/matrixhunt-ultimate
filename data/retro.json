@@ -132,8 +132,8 @@
       "url": "https://flashpointarchive.org",
       "totalGames": "220,637+",
       "launcher": {
-        "infinity": { "name": "Flashpoint Infinity", "desc": "Lightweight streaming launcher", "url": "https://flashpointarchive.org/infinity/" },
-        "ultimate": { "name": "Flashpoint Ultimate", "desc": "Full offline archive (1TB+)", "url": "https://flashpointarchive.org/ultimate/" }
+        "infinity": { "name": "Flashpoint Infinity", "desc": "Lightweight streaming launcher", "url": "https://flashpointarchive.org/downloads" },
+        "ultimate": { "name": "Flashpoint Ultimate", "desc": "Full offline archive (1TB+)", "url": "https://flashpointarchive.org/downloads" }
       },
       "technologies": ["Flash", "Shockwave", "HTML5", "Java", "Unity Web"],
       "description": "World's largest web game preservation effort"

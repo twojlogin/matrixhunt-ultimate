@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from xml.sax.saxutils import escape
 from types import SimpleNamespace
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlsplit
 
-from cleaner import is_url_allowed, clean_html, MAX_BYTES
+from cleaner import is_url_allowed, clean_html, MAX_BYTES, new_safe_session
 from steam_auth import build_login_url, verify_response, fetch_persona, fetch_games_count
 
 from fastapi import FastAPI, HTTPException, Request
@@ -66,6 +66,7 @@ _MH_PUBLIC = _os.environ.get("MH_PUBLIC", "").strip() in ("1", "true", "yes")
 if _MH_PUBLIC:
     print("[MH_PUBLIC] tryb tylko-do-odczytu: zapisy i scrapowanie zablokowane")
 app.mount("/tools", StaticFiles(directory=str(TOOLS_DIR)), name="tools")
+app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend-static")
 # Ruffle self-hosted (.wasm) musi mieć application/wasm, inaczej przeglądarka
 # odmawia inicjalizacji. Na części systemów mimetypes nie zna .wasm.
 import mimetypes as _mimetypes
@@ -160,8 +161,38 @@ API_TOKEN = _api_token()
 
 
 def _is_loopback_host(host):
-    h = (host or "").split(",")[0].strip().split(":")[0].lower()
-    return h in ("127.0.0.1", "localhost", "::1")
+    if not host or "," in host:
+        return False
+    try:
+        authority = urlsplit("//" + host)
+        name = authority.hostname
+        port = authority.port
+    except ValueError:
+        return False
+    if not name or (port is not None and not 1 <= port <= 65535):
+        return False
+    if name.lower() == "localhost":
+        return True
+    import ipaddress
+    try:
+        address = ipaddress.ip_address(name)
+        mapped = getattr(address, "ipv4_mapped", None)
+        return address.is_loopback or bool(mapped and mapped.is_loopback)
+    except ValueError:
+        return False
+
+
+def _is_loopback_client(request):
+    client = request.client
+    if not client or not client.host:
+        return False
+    import ipaddress
+    try:
+        address = ipaddress.ip_address(client.host.split("%", 1)[0])
+        mapped = getattr(address, "ipv4_mapped", None)
+        return address.is_loopback or bool(mapped and mapped.is_loopback)
+    except ValueError:
+        return False
 
 
 def _token_ok(candidate):
@@ -176,35 +207,51 @@ async def _api_guard(request, call_next):
     """DNS-rebinding + CSRF guard for the API, and the ONLY place CORS is
     granted. Predictable loopback ports are trivially probed, so:
 
-      * every /api/* call needs a loopback Host (a rebound evil.com dies here)
-      * every state-changing one needs the per-boot X-MH-Token, which only
-        same-origin JS can read
-      * an Origin header is echoed back ONLY when it is exactly this app's
-        own origin. Same-origin requests never need it, so anything else
-        simply gets no CORS header and the browser blocks the read.
+      * local mode checks both the actual peer address and loopback Host
+      * state-changing calls need the per-boot token (header, or the
+        server-generated form action for proxied forms)
+      * browser API calls must be same-origin; proxy GETs also require a
+        same-origin Fetch Metadata signal when Origin is omitted
     """
     if request.url.path.startswith("/api/"):
         # Tryb publiczny (MH_PUBLIC=1): aplikacja tylko-do-odczytu.
         if _MH_PUBLIC and request.method in ("POST", "PUT", "PATCH", "DELETE"):
             return JSONResponse({"error": "read-only mode (MH_PUBLIC=1)"}, status_code=403)
-        # Host check: loopback w trybie lokalnym; w publicznym (tunel) Host to domena
-        if not _MH_PUBLIC and not _is_loopback_host(request.headers.get("host")):
-            return JSONResponse({"error": "loopback only"}, status_code=403)
-        # CSRF hardening for the proxy endpoints: a cross-origin page may
-        # otherwise trigger a server-side fetch (with the user's stored
-        # cookies for the target host) via <img>/<iframe>/fetch. A request
-        # that carries an Origin header must come from this app's own origin.
-        if request.url.path in ("/api/clean", "/api/img"):
-            origin = request.headers.get("origin")
-            if origin and not _is_own_origin(origin):
-                return JSONResponse({"error": "cross-origin blocked"}, status_code=403)
+        if not _MH_PUBLIC:
+            if not _is_loopback_client(request):
+                return JSONResponse({"error": "loopback client only"}, status_code=403)
+            if not _is_loopback_host(request.headers.get("host")):
+                return JSONResponse({"error": "loopback host only"}, status_code=403)
+
+        origin = request.headers.get("origin")
+        fetch_site = request.headers.get("sec-fetch-site", "").lower()
+        same_origin = bool(origin and _is_own_origin(origin, request))
+        if origin and not same_origin:
+            return JSONResponse({"error": "cross-origin blocked"}, status_code=403)
+        if fetch_site and fetch_site not in ("same-origin", "none"):
+            return JSONResponse({"error": "cross-origin blocked"}, status_code=403)
+
+        token = request.headers.get("x-mh-token", "")
+        if not token and request.url.path == "/api/clean":
+            token = request.query_params.get("token", "")
+        token_valid = bool(token and _token_ok(token))
+
+        # A proxy fetch stores upstream cookies, so even GET must prove that
+        # the caller is this app's page, not a cross-site image/iframe.
+        if (request.url.path in ("/api/clean", "/api/img")
+                and request.method == "GET"
+                and not (same_origin or fetch_site == "same-origin" or token_valid)):
+            return JSONResponse({"error": "same-origin proxy request required"}, status_code=403)
+
         if request.method not in ("GET", "HEAD", "OPTIONS"):
-            token = request.headers.get("x-mh-token", "")
-            if not token or not _token_ok(token):
+            if not token_valid:
                 return JSONResponse({"error": "missing or bad api token"}, status_code=403)
+        if (_MH_PUBLIC and not (same_origin or fetch_site == "same-origin"
+                                or token_valid)):
+            return JSONResponse({"error": "same-origin or api token required"}, status_code=403)
     response = await call_next(request)
     origin = request.headers.get("origin")
-    if origin and _is_own_origin(origin):
+    if origin and _is_own_origin(origin, request):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Vary"] = "Origin"
         if request.method == "OPTIONS" and request.url.path.startswith("/api/"):
@@ -214,15 +261,36 @@ async def _api_guard(request, call_next):
     return response
 
 
-def _is_own_origin(origin):
-    port = getattr(app.state, "port", 8000)
-    return origin in (f"http://localhost:{port}", f"http://127.0.0.1:{port}")
+def _is_own_origin(origin, request):
+    try:
+        parsed_origin = urlsplit(origin)
+        request_host = urlsplit("//" + request.headers.get("host", ""))
+        origin_host = parsed_origin.hostname
+        host = request_host.hostname
+        origin_port = parsed_origin.port
+        host_port = request_host.port
+    except ValueError:
+        return False
+    if (parsed_origin.username is not None or parsed_origin.password is not None
+            or parsed_origin.path not in ("", "/")
+            or parsed_origin.query or parsed_origin.fragment
+            or not origin_host or not host or origin_host.lower() != host.lower()):
+        return False
+    if host_port is not None:
+        if origin_port != host_port:
+            return False
+    elif origin_port not in (None, 80, 443):
+        return False
+    if _MH_PUBLIC:
+        return parsed_origin.scheme in ("http", "https")
+    expected_port = request.url.port or (443 if request.url.scheme == "https" else 80)
+    actual_port = origin_port or (443 if parsed_origin.scheme == "https" else 80)
+    return parsed_origin.scheme == request.url.scheme and actual_port == expected_port
 
 
 @app.get("/api/client-config")
 async def client_config():
-    """Token + port for the same-origin UI. CORS + Host guard keep this
-    unreadable to foreign origins, so the token is not a leak."""
+    """Token + port for the same-origin UI, guarded by peer and origin checks."""
     return {"token": API_TOKEN, "port": getattr(app.state, "port", 8000)}
 
 DB_PATH = f"sqlite:///{BASE_DIR / 'matrixhunt.db'}"
@@ -289,17 +357,20 @@ async def run_all_scrapers():
     # and stacked /api/scrape calls could pile up indefinitely).
     async with aiohttp.ClientSession() as session:
         all_deals = []
+        refreshed_sources = set()
         for cls in SCRAPER_CLASSES:
             try:
                 scraper = cls(session=session)
                 deals = await asyncio.wait_for(scraper.scrape(), timeout=45)
                 all_deals.extend(deals)
+                refreshed_sources.update(
+                    deal.source for deal in deals if getattr(deal, "source", None))
                 print(f"[{scraper.name}] Found {len(deals)} deals")
             except asyncio.TimeoutError:
                 print(f"[{cls.__name__}] Timeout after 45s, skipped")
             except Exception as e:
                 print(f"[{cls.__name__}] Error: {e}")
-        return all_deals
+        return all_deals, refreshed_sources
 
 
 _scrape_lock = asyncio.Lock()
@@ -311,8 +382,8 @@ async def guarded_scrape():
     if _scrape_lock.locked():
         return None
     async with _scrape_lock:
-        deals = await run_all_scrapers()
-        return save_deals_to_db(deals)
+        deals, refreshed_sources = await run_all_scrapers()
+        return save_deals_to_db(deals, refresh_sources=refreshed_sources)
 
 
 def load_seed_catalog():
@@ -466,7 +537,7 @@ def _merge_twins(offers):
     return [o for k, o in enumerate(offers) if keep[k]]
 
 
-def save_deals_to_db(deals):
+def save_deals_to_db(deals, refresh_sources=()):
     session = SessionFactory()
     new_count = 0
     updated_count = 0
@@ -484,6 +555,7 @@ def save_deals_to_db(deals):
             for o in session.query(Offer).filter(Offer.url.in_(batch_urls)):
                 existing[_canonical_url(o.url)] = o
         seen = set()
+        seen_by_source = {}
 
         for deal in deals:
             if not deal.url or _canonical_url(deal.url) in seen:
@@ -500,9 +572,13 @@ def save_deals_to_db(deals):
                 continue
             canon = _canonical_url(deal.url)
             seen.add(canon)
+            source = getattr(deal, "source", None)
+            if source:
+                seen_by_source.setdefault(source, set()).add(canon)
 
             znany = existing.get(canon)
             if znany is not None:
+                znany.is_active = True
                 # Re-running a scrape has to refresh the price. Keys are URLs,
                 # and skipping known ones meant a scraper fixed today could
                 # never repair a price it wrote wrong yesterday. Only a deal
@@ -536,6 +612,20 @@ def save_deals_to_db(deals):
             session.add(offer)
             existing[canon] = offer
             new_count += 1
+
+        # A non-empty scraper result is a usable snapshot for that source.
+        # Retire its old URLs that have disappeared, but keep the last-known
+        # catalog when a scraper times out, fails, or returns no valid deals.
+        for source in refresh_sources:
+            current_urls = seen_by_source.get(source)
+            if not current_urls:
+                continue
+            stale = (session.query(Offer)
+                     .filter(Offer.source == source, Offer.is_active == True)
+                     .all())
+            for offer in stale:
+                if _canonical_url(offer.url) not in current_urls:
+                    offer.is_active = False
 
         session.commit()
     except Exception as e:
@@ -572,7 +662,7 @@ MAX_OFFERS_LIMIT = 1000
 
 
 @app.get("/api/offers")
-async def get_offers(source: str = None, search: str = None, limit: int = 100,
+async def get_offers(source: str = None, search: str = None, limit: int = 1000,
                      nsfw: int = 0):
     # Unbounded limit meant ?limit=1000000000 pulled the whole table into a
     # JSON list; filterlog and db_rows already clamp, this one did not.
@@ -647,18 +737,25 @@ async def price_changes(limit: int = 30):
 async def get_stats():
     session = SessionFactory()
     try:
-        total = session.query(Offer).count()
         active = session.query(Offer).filter(Offer.is_active == True).count()
-        sources = session.execute(text("SELECT source, COUNT(*) FROM offers GROUP BY source")).fetchall()
+        visible_offers = _merge_twins(
+            session.query(Offer)
+            .filter(Offer.is_active == True, Offer.is_adult.isnot(True))
+            .all())
+        total = len(visible_offers)
+        sources = {}
+        for offer in visible_offers:
+            sources[offer.source] = sources.get(offer.source, 0) + 1
         # Ile cen jest zmierzonych, ile tylko zgloszonych, a ile wcale.
         # Strona glowna pokazuje te trzy liczby osobno, bo "darmowe" bez
         # informacji, kto to sprawdzil, jest tym samym klamstwem co kiedys.
-        _lub = lambda wzor: session.query(Offer).filter(Offer.price_source.like(wzor)).count()
-        measured = _lub("api:%")
-        claimed = _lub("listing:%")
+        measured = sum((o.price_source or "").startswith("api:")
+                       for o in visible_offers)
+        claimed = sum((o.price_source or "").startswith("listing:")
+                      for o in visible_offers)
         return {
             "total": total, "active": active,
-            "sources": {s[0]: s[1] for s in sources},
+            "sources": sources,
             "price_measured": measured,
             "price_claimed": claimed,
             "price_unknown": total - measured - claimed,
@@ -765,7 +862,6 @@ async def clean_proxy(url: str, request: Request, ephemeral: int = 0):
 
 
 def _clean_sync(url, method, headers, query_params, post_body, ephemeral=False):
-    import requests as _requests
     from fastapi.responses import JSONResponse
     from sessions import persist_from_requests, session_state, attach_to_requests
 
@@ -782,31 +878,28 @@ def _clean_sync(url, method, headers, query_params, post_body, ephemeral=False):
     else:
         # GET forms (search boxes) arrive with extra query params - merge
         # them into the target instead of dropping the user's input.
-        # "url" and "ephemeral" are ours, never the target's.
-        extra = [(k, v) for k, v in query_params.items() if k not in ("url", "ephemeral")]
+        # "url", auth token and "ephemeral" are ours, never the target's.
+        extra = [(k, v) for k, v in query_params.items()
+                 if k not in ("url", "token", "ephemeral")]
         if extra:
             from urllib.parse import urlencode
             sep = "&" if "?" in target else "?"
             target = target + sep + urlencode(extra)
 
     host = urlparse(target).hostname or ""
-    sess = _requests.Session()
-    sess.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MatrixHunt-Viewer/2.0",
-        "Accept": "text/html,application/xhtml+xml",
-    })
     from settings_store import read_settings, effective_proxies
     settings = read_settings()
     if not settings.get("proxy_clean", True):
         return JSONResponse({"error": "cleaner disabled in settings"}, status_code=403)
-    check_dns = True
     proxies = effective_proxies(settings)
-    if proxies:
-        # DNS is resolved by the proxy/exit, not locally: no local leak and
-        # no false verdicts from split-horizon answers.
-        sess.proxies.update(proxies)
-        sess.trust_env = False
-        check_dns = False
+    sess = new_safe_session(proxies)
+    sess.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MatrixHunt-Viewer/2.0",
+        "Accept": "text/html,application/xhtml+xml",
+    })
+    # DNS is resolved by the proxy/exit in proxy mode; direct connections are
+    # pinned by the safe adapter after the same public-address validation.
+    check_dns = not bool(proxies)
     if ephemeral:
         from sessions import attach_ephemeral as _attach_eph
         _attach_eph(host, sess)
@@ -913,14 +1006,21 @@ def _clean_sync(url, method, headers, query_params, post_body, ephemeral=False):
                         status_code=451)
             else:
                 flt = None
-            cleaned, removed, filtered = clean_html(html_text, current, flt=flt)
+            cleaned, removed, filtered = clean_html(
+                html_text, current, flt=flt, token=API_TOKEN)
             return HTMLResponse(
                 content=cleaned,
                 headers={"X-MH-Cleaned": str(removed), "X-MH-Source": current,
                          "X-MH-Filtered": str(filtered),
                          "X-MH-Host": final_host,
                          "X-MH-Session": "active" if state["has_session"] else "none",
-                         "X-MH-Ephemeral": "1" if ephemeral else "0"},
+                         "X-MH-Ephemeral": "1" if ephemeral else "0",
+                         "Content-Security-Policy": (
+                             "default-src 'none'; img-src 'self'; "
+                             "form-action 'self'; base-uri 'none'; "
+                             "object-src 'none'; frame-src 'none'; "
+                             "script-src 'none'; style-src 'none'"
+                         )},
             )
         return JSONResponse({"error": "too many redirects"}, status_code=502)
     finally:
@@ -1081,7 +1181,14 @@ async def img_proxy(url: str):
 
 
 def _img_sync(url):
-    import requests as _requests
+    session = new_safe_session()
+    try:
+        return _img_sync_with_session(url, session)
+    finally:
+        session.close()
+
+
+def _img_sync_with_session(url, session):
     from fastapi.responses import JSONResponse, Response
     from urllib.parse import urljoin
     # Re-validate every hop: requests follows redirects by default, so a
@@ -1095,7 +1202,7 @@ def _img_sync(url):
                 r.close()
             return JSONResponse({"error": f"blocked: {reason}"}, status_code=403)
         try:
-            r = _requests.get(target, timeout=15, stream=True, allow_redirects=False, headers={
+            r = session.get(target, timeout=15, stream=True, allow_redirects=False, headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MatrixHunt-Viewer/2.0",
                 "Accept": "image/*",
             })
@@ -1255,12 +1362,11 @@ async def db_rows(table: str, search: str = "", page: int = 1, limit: int = 100)
     # schema instead (the desktop original interpolated them raw).
     # Re-derive table from the schema so user-controlled input never
     # reaches the SQL string - only validated names from the database do.
-    _valid_tables = {t["table"] for t in _db_tables()}
+    _valid_tables = set(_db_tables())
     if table not in _valid_tables:
         raise HTTPException(status_code=400, detail="unknown table")
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table):
         raise HTTPException(status_code=400, detail="unknown table")
-    table = next(t for t in _valid_tables if t == table)
     limit = max(1, min(limit, 200))
     page = max(1, page)
     con = _db_ro()
@@ -1477,9 +1583,9 @@ async def lifespan(app):
         session.close()
     if count == 0:
         print("Empty DB, running initial scrape...")
-        deals = await run_all_scrapers()
+        deals, refreshed_sources = await run_all_scrapers()
         try:
-            save_deals_to_db(deals)
+            save_deals_to_db(deals, refresh_sources=refreshed_sources)
         except Exception as e:
             print(f"Initial scrape write failed: {e}")
     else:
@@ -1583,6 +1689,8 @@ if __name__ == "__main__":
     import os as _os
     import uvicorn
     _host = _os.environ.get("MH_HOST", "127.0.0.1").strip() or "127.0.0.1"
+    if not _MH_PUBLIC and not _is_loopback_host(_host):
+        raise SystemExit("MH_HOST must be loopback unless MH_PUBLIC=1")
     port = find_port()
     app.state.port = port
     _lock_cors_to_port(port)

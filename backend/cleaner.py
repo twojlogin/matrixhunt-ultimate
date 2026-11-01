@@ -6,13 +6,20 @@ touch raw ad-/tracker-laden markup. Two layers:
 1. SSRF guard (is_url_allowed) - only public http(s) hosts, ports 80/443,
    every redirect hop re-validated. The app binds 127.0.0.1, so an open
    fetch would otherwise reach the visitor's LAN.
-2. clean_html - strips scripts, iframes, objects, forms, event handlers,
-   tracking pixels and known ad/tracker domains; absolutises the rest.
+2. clean_html - strips executable/active markup and styles, proxies images,
+   removes untrusted subresources and applies a strict browser CSP.
 """
 import ipaddress
 import re
 import socket
 from urllib.parse import urlencode, urljoin, urlparse
+
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.connection import HTTPConnection, HTTPSConnection
+from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
+from urllib3.exceptions import ConnectTimeoutError, NewConnectionError
+from urllib3.util import connection
 
 ALLOWED_PORTS = {80, 443}
 MAX_BYTES = 2 * 1024 * 1024
@@ -40,8 +47,8 @@ TRACKER_PATH_PREFIXES = (
 # "/pixel-art-guide" is a guide, "/pixel.gif" is a pixel.
 TRACKER_PATH_TOKENS = ("/pixel", "/beacon")
 
-STRIP_TAGS = {"script", "iframe", "object", "embed", "applet",
-              "meta", "link", "base"}
+STRIP_TAGS = {"script", "iframe", "object", "embed", "applet", "svg", "math",
+              "template", "style", "meta", "link", "base"}
 # Form controls stay: logins must work through the proxy. The server never
 # stores submitted values - only Set-Cookie responses land in the host jar.
 FORM_TAGS = {"form", "input", "button", "select", "textarea", "label",
@@ -63,22 +70,119 @@ def _dangerous_scheme(val):
 
 
 def _is_global_ip(host):
-    """True when host resolves exclusively to public routable addresses."""
+    """Return one public address only if every DNS answer is public."""
     try:
-        infos = socket.getaddrinfo(host, None)
-    except socket.gaierror:
-        return False
-    if not infos:
-        return False
+        literal = ipaddress.ip_address(host)
+        return str(literal) if literal.is_global else None
+    except ValueError:
+        pass
+
+    try:
+        infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+    except OSError:
+        return None
+    addresses = []
     for info in infos:
         ip = info[4][0]
         try:
             addr = ipaddress.ip_address(ip)
         except ValueError:
-            return False
+            return None
         if not addr.is_global:
-            return False
-    return True
+            return None
+        if str(addr) not in addresses:
+            addresses.append(str(addr))
+    return addresses[0] if addresses else None
+
+
+class _PinnedHTTPConnection(HTTPConnection):
+    def __init__(self, *args, pinned_ip, **kwargs):
+        self._pinned_ip = pinned_ip
+        super().__init__(*args, **kwargs)
+
+    def _new_conn(self):
+        try:
+            return connection.create_connection(
+                (self._pinned_ip, self.port), self.timeout,
+                source_address=self.source_address,
+                socket_options=self.socket_options,
+            )
+        except (socket.timeout, TimeoutError) as exc:
+            raise ConnectTimeoutError(
+                self, f"Connection to {self.host} timed out."
+            ) from exc
+        except OSError as exc:
+            raise NewConnectionError(
+                self, f"Failed to establish a connection: {exc}"
+            ) from exc
+
+
+class _PinnedHTTPSConnection(HTTPSConnection):
+    def __init__(self, *args, pinned_ip, **kwargs):
+        self._pinned_ip = pinned_ip
+        super().__init__(*args, **kwargs)
+
+    def _new_conn(self):
+        try:
+            return connection.create_connection(
+                (self._pinned_ip, self.port), self.timeout,
+                source_address=self.source_address,
+                socket_options=self.socket_options,
+            )
+        except (socket.timeout, TimeoutError) as exc:
+            raise ConnectTimeoutError(
+                self, f"Connection to {self.host} timed out."
+            ) from exc
+        except OSError as exc:
+            raise NewConnectionError(
+                self, f"Failed to establish a connection: {exc}"
+            ) from exc
+
+
+class _PinnedHTTPConnectionPool(HTTPConnectionPool):
+    ConnectionCls = _PinnedHTTPConnection
+
+
+class _PinnedHTTPSConnectionPool(HTTPSConnectionPool):
+    ConnectionCls = _PinnedHTTPSConnection
+
+
+class _PinnedHTTPAdapter(HTTPAdapter):
+    def _pool_for(self, url):
+        parts = urlparse(url)
+        host = parts.hostname or ""
+        pinned_ip = _is_global_ip(host)
+        if not pinned_ip:
+            raise ValueError("non-public host")
+        port = parts.port or (443 if parts.scheme == "https" else 80)
+        pool = (_PinnedHTTPSConnectionPool if parts.scheme == "https"
+                else _PinnedHTTPConnectionPool)
+        kwargs = {"host": host, "port": port, "pinned_ip": pinned_ip}
+        if parts.scheme == "https":
+            kwargs.update(server_hostname=host, assert_hostname=host)
+        return pool(**kwargs)
+
+    def get_connection(self, url, proxies=None):
+        if proxies:
+            return super().get_connection(url, proxies)
+        return self._pool_for(url)
+
+    def get_connection_with_tls_context(self, request, verify, proxies=None, cert=None):
+        if proxies:
+            return super().get_connection_with_tls_context(
+                request, verify, proxies, cert)
+        return self._pool_for(request.url)
+
+
+def new_safe_session(proxies=None):
+    """Create a Requests session that pins direct connections to checked DNS."""
+    session = requests.Session()
+    session.trust_env = False
+    session.mount("http://", _PinnedHTTPAdapter())
+    session.mount("https://", _PinnedHTTPAdapter())
+    if proxies:
+        session.proxies.update(proxies)
+    return session
 
 
 def is_url_allowed(url, check_dns=True):
@@ -91,16 +195,27 @@ def is_url_allowed(url, check_dns=True):
     """
     try:
         parts = urlparse(url)
-    except Exception:
+        host = parts.hostname or ""
+        port = parts.port or (443 if parts.scheme == "https" else 80)
+    except (AttributeError, TypeError, ValueError):
         return False, "unparseable URL"
     if parts.scheme not in ("http", "https"):
         return False, "only http(s) allowed"
-    if not parts.hostname:
+    if not host or parts.username is not None or parts.password is not None:
         return False, "missing host"
-    port = parts.port or (443 if parts.scheme == "https" else 80)
     if port not in ALLOWED_PORTS:
         return False, "port not allowed"
-    if check_dns and not _is_global_ip(parts.hostname):
+    host_lower = host.lower().rstrip(".")
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+    if (literal is not None and not literal.is_global) or (
+            literal is None and (host_lower == "localhost"
+                                 or host_lower.endswith((".localhost", ".local",
+                                                         ".internal", ".test")))):
+        return False, "non-public host"
+    if check_dns and not _is_global_ip(host):
         return False, "non-public host"
     return True, ""
 
@@ -155,7 +270,7 @@ def _filter_check(flt, page_url, resource_url, res_type):
     return False, None
 
 
-def clean_html(html, base_url, flt=None):
+def clean_html(html, base_url, flt=None, token=None):
     """Return (clean_html, removed_count, blocked_count). Pure function,
     fully unit-tested.
 
@@ -175,33 +290,6 @@ def clean_html(html, base_url, flt=None):
             continue
         name = tag.name.lower()
         if name in STRIP_TAGS:
-            # Keep stylesheets and the document charset; drop the rest
-            # (preload-as-script, refresh-redirects, icons are harmless but
-            # useless through the proxy).
-            if name == "link":
-                rel = " ".join(tag.get("rel", [])).lower()
-                if tag.get("rel") == ["stylesheet"] or "stylesheet" in rel:
-                    href = tag.get("href", "")
-                    if href and not _dangerous_scheme(href):
-                        tag["href"] = urljoin(base_url, href)
-                        # NO continue: stylesheets must still face the tracker
-                        # heuristic and the filter engine. Skipping them meant
-                        # the "link": "stylesheet" mapping below was dead code
-                        # and an ad host in a <link> survived untouched.
-                        if _is_tracker(tag["href"]):
-                            tag.decompose()
-                            removed += 1
-                            continue
-                        blocked, _rule = _filter_check(
-                            flt, base_url, tag["href"], "stylesheet")
-                        if blocked:
-                            tag.decompose()
-                            removed += 1
-                            filtered += 1
-                        continue
-                tag.decompose()
-                removed += 1
-                continue
             if name == "meta":
                 if (tag.get("charset") or tag.get("http-equiv", "").lower() == "content-type"):
                     continue
@@ -218,9 +306,11 @@ def clean_html(html, base_url, flt=None):
             removed += 1
 
         # formaction would bypass the rewritten form action below.
-        if tag.has_attr("formaction"):
-            del tag.attrs["formaction"]
-            removed += 1
+        for attr in ("formaction", "srcdoc", "ping", "style", "background",
+                     "dynsrc", "lowsrc", "data", "cite", "poster", "xlink:href"):
+            if tag.has_attr(attr):
+                del tag.attrs[attr]
+                removed += 1
 
         if name == "form":
             action = tag.get("action", "") or ""
@@ -229,57 +319,64 @@ def clean_html(html, base_url, flt=None):
             # url=...checkout?step=2 with "lang=en" and the fragment
             # orphaned onto our own endpoint.
             target = urljoin(base_url, action) if action else base_url
-            tag["action"] = "/api/clean?" + urlencode({"url": target})
+            params = {"url": target}
+            if token:
+                params["token"] = token
+            tag["action"] = "/api/clean?" + urlencode(params)
             if not tag.get("method"):
                 tag["method"] = "get"
 
-        # Dangerous URL schemes in any URL-bearing attribute. style is in
-        # the list because url(javascript:…) / url(data:…) inside an inline
-        # style is the same hazard as a javascript: href. xlink:href and
-        # srcset were missing: <svg><a xlink:href="javascript:…">> survived
-        # sanitising, and /api/clean is same-origin, so that is real script.
-        for attr in ("href", "src", "action", "cite", "data", "poster", "style",
-                     "xlink:href", "srcset", "background", "dynsrc", "lowsrc",
-                     "formaction", "srcdoc", "ping"):
+        # Only image resources are loaded, through the validating image proxy.
+        # All other external subresources are removed rather than fetched by
+        # the browser outside the SSRF gate.
+        for attr in ("href", "src", "action", "srcset"):
             val = tag.get(attr)
             if isinstance(val, str):
                 low = val.strip().lower()
-                if attr == "style":
-                    flat = _CTRL_SPACE.sub("", low)
-                    if "javascript:" in flat or "expression(" in flat:
+                if attr == "srcset":
+                    rebuilt = []
+                    for part in val.split(","):
+                        bits = part.strip().split()
+                        if not bits or _dangerous_scheme(bits[0]):
+                            continue
+                        image_url = _proxy_image_url(bits[0], base_url)
+                        if image_url:
+                            desc = " " + bits[1] if len(bits) > 1 else ""
+                            rebuilt.append(image_url + desc)
+                    if rebuilt:
+                        tag[attr] = ", ".join(rebuilt)
+                    else:
                         del tag.attrs[attr]
                         removed += 1
-                elif attr == "srcset":
-                    # A srcset is a list of URLs: absolutise each, and drop the
-                    # whole attribute if ANY candidate is a known tracker.
-                    cands = [p.strip() for p in val.split(",") if p.strip()]
-                    if not cands:
+                elif attr == "src":
+                    if name != "img":
                         del tag.attrs[attr]
                         removed += 1
                     else:
-                        rebuilt = []
-                        for part in cands:
-                            bits = part.split(" ")
-                            low_u = bits[0].strip().lower()
-                            if _dangerous_scheme(bits[0]):
-                                continue
-                            u = urljoin(base_url, bits[0])
-                            desc = (" " + bits[1]) if len(bits) > 1 else ""
-                            if not _is_tracker(u):
-                                rebuilt.append(u + desc)
-                        if rebuilt:
-                            tag[attr] = ", ".join(rebuilt)
+                        image_url = _proxy_image_url(val, base_url)
+                        if image_url:
+                            tag[attr] = image_url
                         else:
                             del tag.attrs[attr]
                             removed += 1
+                elif attr == "href":
+                    if _dangerous_scheme(val):
+                        del tag.attrs[attr]
+                        removed += 1
+                    elif val and not low.startswith(("#", "mailto:")):
+                        target = urljoin(base_url, val)
+                        allowed, _reason = is_url_allowed(target, check_dns=False)
+                        if not allowed:
+                            del tag.attrs[attr]
+                            removed += 1
+                        else:
+                            tag[attr] = target
                 elif _dangerous_scheme(val):
                     del tag.attrs[attr]
                     removed += 1
-                elif attr in ("href", "src") and val and not low.startswith(("#", "mailto:")):
-                    tag[attr] = urljoin(base_url, val)
 
         # Tracking pixels and ad hosts (legacy heuristics).
-        src = tag.get("src", "") or tag.get("href", "")
+        src = tag.get("src", "")
         if src and _is_tracker(src):
             tag.decompose()
             removed += 1
@@ -289,8 +386,7 @@ def clean_html(html, base_url, flt=None):
                 w, h = int(tag.get("width", 0) or 0), int(tag.get("height", 0) or 0)
             except (ValueError, TypeError):
                 w = h = 0
-            style = (tag.get("style") or "").replace(" ", "")
-            if (w == 1 and h == 1) or "1px" in style or "display:none" in style:
+            if w == 1 and h == 1:
                 tag.decompose()
                 removed += 1
                 continue
@@ -313,9 +409,21 @@ def clean_html(html, base_url, flt=None):
                     filtered += 1
                     break
 
-    # <base> makes every relative link/image work inside the iframe.
-    if soup.head is not None:
-        base_tag = soup.new_tag("base", href=base_url)
-        soup.head.insert(0, base_tag)
-
     return str(soup), removed, filtered
+
+
+def _proxy_image_url(value, base_url):
+    if not isinstance(value, str) or _dangerous_scheme(value):
+        return None
+    target = urljoin(base_url, value.strip())
+    try:
+        parts = urlparse(target)
+        if (parts.scheme not in ("http", "https") or not parts.hostname
+                or parts.username is not None or parts.password is not None):
+            return None
+    except ValueError:
+        return None
+    allowed, _reason = is_url_allowed(target, check_dns=False)
+    if not allowed or _is_tracker(target):
+        return None
+    return "/api/img?" + urlencode({"url": target})
