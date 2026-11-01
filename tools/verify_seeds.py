@@ -1,8 +1,12 @@
-"""Verify seed-catalog candidates. Steam appids go through the official
-store API (accurate free-status, not just HTTP 200); Epic/standalone sites
-get a page check. Only verified entries are printed as JSON.
+"""Verify seed-catalog candidates.
+
+Steam offers are emitted only when the official API explicitly marks them as
+free-to-play. Other sites are checked for reachability and page identity only;
+that does not verify their price, so those candidates are never emitted.
+JSON goes to stdout and diagnostics go to stderr.
 """
 import json
+import sys
 import time
 import urllib.request
 
@@ -27,50 +31,77 @@ PAGES = [
 
 def get(url, timeout=25):
     req = urllib.request.Request(url, headers={**UA, "Accept": "text/html"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.status, r.geturl(), r.read(80000).decode("utf-8", "replace")
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        return (response.status, response.geturl(),
+                response.read(80000).decode("utf-8", "replace"))
 
 
-kept = []
-print("== Steam API (is_free) ==")
-for appid in STEAM_IDS:
-    try:
-        req = urllib.request.Request(
-            f"https://store.steampowered.com/api/appdetails?appids={appid}",
-            headers=UA)
-        with urllib.request.urlopen(req, timeout=25) as r:
-            d = json.loads(r.read().decode("utf-8", "replace"))
-        info = (d.get(str(appid)) or {})
-        data = info.get("data") or {}
-        free = bool(data.get("is_free")) or (
-            isinstance(data.get("price_overview"), dict)
-            and data["price_overview"].get("final") == 0)
-        name = data.get("name", "?")
-        print(f"  [{'OK ' if (info.get('success') and free) else 'DROP'}] {appid} {name}")
-        if info.get("success") and free:
-            kept.append({"title": name, "url": f"https://store.steampowered.com/app/{appid}",
-                         "price": "Free", "price_claim": "Free",
-                         "price_source": "api:steam",
-                         "source": "SeedCatalog", "category": "games",
-                         "description": "Permanently free title (seed catalog)."})
-    except Exception as e:
-        print(f"  [ERR ] {appid} {str(e)[:60]}")
-    time.sleep(0.4)
+def steam_offer(appid, result):
+    """Return a seed offer only for an explicitly free-to-play Steam game."""
+    if not isinstance(result, dict) or result.get("success") is not True:
+        return None
+    data = result.get("data")
+    if (not isinstance(data, dict) or data.get("type") != "game"
+            or data.get("is_free") is not True):
+        return None
+    name = data.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return None
+    return {"title": name, "url": f"https://store.steampowered.com/app/{appid}",
+            "price": "Free", "price_claim": "Free",
+            "price_source": "api:steam", "source": "SeedCatalog",
+            "category": "games",
+            "description": "Free-to-play title verified by Steam API at catalog generation."}
 
-print("== strony stale ==")
-for title, url, category, marker in PAGES:
-    try:
-        status, final, body = get(url)
-        ok = status == 200 and len(body) > 5000 and marker.lower() in body.lower()
-        print(f"  [{'OK ' if ok else 'DROP'}] {title} ({len(body)}B)")
-        if ok:
-            kept.append({"title": title, "url": url, "price": "Free",
-                         "price_claim": "Free", "price_source": "api:page-check",
-                         "source": "SeedCatalog", "category": category,
-                         "description": "Permanently free title (seed catalog)."})
-    except Exception as e:
-        print(f"  [ERR ] {title} {str(e)[:60]}")
-    time.sleep(0.5)
 
-print(f"\nkept {len(kept)}")
-print(json.dumps(kept, indent=1, ensure_ascii=False))
+def verify_steam(appid):
+    req = urllib.request.Request(
+        f"https://store.steampowered.com/api/appdetails?appids={appid}",
+        headers=UA)
+    with urllib.request.urlopen(req, timeout=25) as response:
+        payload = json.loads(response.read().decode("utf-8", "replace"))
+    if not isinstance(payload, dict):
+        return None
+    return steam_offer(appid, payload.get(str(appid)))
+
+
+def verify_page(url, marker):
+    status, _final_url, body = get(url)
+    return status == 200 and len(body) > 5000 and marker.lower() in body.lower()
+
+
+def main():
+    kept = []
+    errors = 0
+
+    print("== Steam API (is_free) ==", file=sys.stderr)
+    for appid in STEAM_IDS:
+        try:
+            offer = verify_steam(appid)
+            print(f"  [{'OK ' if offer else 'DROP'}] {appid}"
+                  f"{' ' + offer['title'] if offer else ''}", file=sys.stderr)
+            if offer:
+                kept.append(offer)
+        except Exception as error:
+            errors += 1
+            print(f"  [ERR ] {appid} {str(error)[:160]}", file=sys.stderr)
+        time.sleep(0.4)
+
+    print("== strony (dostępność, nie cena) ==", file=sys.stderr)
+    for title, url, _category, marker in PAGES:
+        try:
+            available = verify_page(url, marker)
+            print(f"  [{'OK ' if available else 'DROP'}] {title}"
+                  " (cena niezweryfikowana; pominięto w JSON)", file=sys.stderr)
+        except Exception as error:
+            errors += 1
+            print(f"  [ERR ] {title} {str(error)[:160]}", file=sys.stderr)
+        time.sleep(0.5)
+
+    print(f"kept {len(kept)}; errors {errors}", file=sys.stderr)
+    print(json.dumps(kept, indent=1, ensure_ascii=False))
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

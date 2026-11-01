@@ -9,7 +9,7 @@ zanim poprawka nie trafi do `main`.
 ## Model bezpieczeństwa
 
 MatrixHunt Ultimate to **aplikacja lokalna** — działa na `127.0.0.1`,
-zero chmury, zero CDN. React, Babel i Ruffle są zvendorowane w `frontend/vendor/`.
+zero chmury, zero CDN dla zasobów aplikacji. React i Babel są zvendorowane w `frontend/vendor/`.
 
 ### Co aplikacja robi w sieci (tylko na żądanie)
 
@@ -35,7 +35,7 @@ zero chmury, zero CDN. React, Babel i Ruffle są zvendorowane w `frontend/vendor
 
 - `.app_settings.json` jest zapisywany jawnie (plaintext), gdy sejf jest zablokowany.
   Strażnik pilnuje tego tylko dla ciasteczek, nie dla ustawień.
-- Vendored pliki (React, Babel, Ruffle) nie są weryfikowane sumą kontrolną
+- Vendored pliki (React, Babel) nie są weryfikowane sumą kontrolną
   (sprawdzone ręcznie przy dodaniu, nie automatycznie).
 - Proxy `/api/clean` przekazuje formularze POST w całości do sklepu
   (w tym hasła) — to konieczne, żeby logowanie przez viewer działało.

@@ -6,17 +6,8 @@
     <meta name="referrer" content="no-referrer">
     <script>try{var _l=localStorage.getItem('mh_lang');if(_l!=='pl'&&_l!=='en'){_l=(navigator.language||'en').toLowerCase().indexOf('pl')===0?'pl':'en';}document.documentElement.setAttribute('data-lang',_l);}catch(e){document.documentElement.setAttribute('data-lang','en');}</script>
     <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('mh_theme')==='night'||localStorage.getItem('mh_theme')==='day'?localStorage.getItem('mh_theme'):'night')}catch(e){document.documentElement.setAttribute('data-theme','night')}</script>
-<title>MATRIX FLASH PLAYER // RUFFLE WASM</title>
-<!-- Ruffle 0.7.1 zvendorowane lokalnie (tools/../frontend/vendor/ruffle/):
-     zero zapytań do CDN, player działa offline w tej samej karcie. -->
-<script>
-  window.RufflePlayer = window.RufflePlayer || {};
-  window.RufflePlayer.config = Object.assign(
-    { publicPath: "/static/vendor/ruffle/", polyfill: false },
-    window.RufflePlayer.config || {}
-  );
-</script>
-<script src="/static/vendor/ruffle/ruffle.js"></script>
+    <title>MATRIX FLASH ARCADE</title>
+    <script src="/tools/site.js"></script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
@@ -111,55 +102,6 @@
     border-bottom:1px dashed var(--border);
     padding-bottom:5px;
   }
-  #drop-zone {
-    border:2px dashed var(--border);
-    padding:40px 20px;
-    text-align:center;
-    cursor:pointer;
-    transition:all 0.3s;
-    margin-bottom:10px;
-  }
-  #drop-zone:hover, #drop-zone.drag-over {
-    background:rgba(0, 255, 0, 0.1);
-    box-shadow:var(--glow);
-  }
-  #drop-zone p {
-    font-size:0.95em;
-    margin-bottom:10px;
-  }
-  #drop-zone .hint {
-    font-size:0.75em;
-    color:var(--muted);
-  }
-  #file-input { display:none; }
-  #player-container {
-    width:100%;
-    max-width:800px;
-    height:600px;
-    margin:0 auto;
-    background:var(--card);
-    border:2px solid var(--border);
-    position:relative;
-    overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  #player-container.swf-loaded {
-    border-color:var(--border);
-  }
-  #player-placeholder {
-    color:var(--muted);
-    font-size:0.9em;
-    text-align:center;
-    line-height:1.6;
-  }
-  #player-container embed,
-  #player-container object {
-    width:100%;
-    height:100%;
-    border:none;
-  }
   .controls {
     display:flex;
     gap:10px;
@@ -248,14 +190,7 @@
   @keyframes blink {
     50% { opacity:0; }
   }
-  .status-line {
-    font-size:0.8em;
-    color:var(--muted);
-    text-align:center;
-    margin-top:8px;
-  }
   @media (max-width:600px) {
-    #player-container { height:400px; }
     header h1 { font-size:1em; }
     .content { padding:10px; }
   }
@@ -269,53 +204,23 @@
 
 <div class="content">
   <header>
-    <h1>[ MATRIX FLASH PLAYER // RUFFLE WASM ]</h1>
+    <h1>[ MATRIX FLASH ARCADE ]</h1>
   </header>
 
   <div class="section">
-    <div class="section-title">&gt; LOAD SWF FILE_</div>
-    <div id="drop-zone" onclick="document.getElementById('file-input').click()">
-      <p>&gt; DRAG & DROP .SWF FILE HERE_</p>
-      <p class="hint">or click to browse</p>
-    </div>
-    <input type="file" id="file-input" accept=".swf,.SWF">
-  </div>
-
-  <div class="section">
-    <div class="section-title">&gt; PLAYER_</div>
-    <div id="player-container">
-      <div id="player-placeholder">
-        <span class="blink">_</span> AWAITING SWF INPUT...<br>
-        <span style="color:var(--muted);font-size:0.8em">Drop a .swf file above to begin</span>
-        <div id="ruffle-warning" style="display:none;color:var(--warn);font-size:0.8em;margin-top:12px;">
-        </div>
-      </div>
-    </div>
+    <div class="section-title">&gt; PLAY NOW_</div>
+    <p class="hint" style="margin-bottom:10px;">Choose a game and press PLAY. When the game screen appears, click "Click to Begin" inside it. The game loads online; no game file or launcher download needed.</p>
     <div class="controls">
-      <button class="btn" id="btn-fullscreen" onclick="toggleFullscreen()" disabled>[ FULLSCREEN ]</button>
-      <button class="btn" id="btn-restart" onclick="restartSwf()" disabled>[ RESTART ]</button>
-      <button class="btn" id="btn-pause" onclick="togglePause()" disabled title="Pauza / wznowienie (Ruffle nie daje API do mute)">[ PAUSE ]</button>
+      <select id="arcade-game" class="btn" aria-label="Choose arcade game">
+        <option value="arcade_1942">1942</option>
+        <option value="arcade_invaders">Space Invaders</option>
+        <option value="arcade_20pacgal">Ms. Pac-Man / Galaga</option>
+      </select>
+      <button class="btn" id="arcade-load" type="button">[ PLAY SELECTED GAME ]</button>
     </div>
-    <div class="status-line" id="status-line">&gt; READY<span class="blink">_</span></div>
-  </div>
-
-  <div class="section info-panel">
-    <div class="section-title">&gt; SYSTEM INFO_</div>
-    <div><span class="label">FILE: </span><span class="value" id="info-filename">N/A</span></div>
-    <div><span class="label">SIZE: </span><span class="value" id="info-filesize">N/A</span></div>
-    <div class="notice">
-      Ruffle is a Flash emulator written in Rust. Compatibility varies - not all SWF files will work perfectly.<br>
-      For 220,000+ preserved Flash games, visit <a href="https://flashpointarchive.org" target="_blank" style="color:var(--green)">Flashpoint Archive</a>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">&gt; QUICK LINKS_</div>
-    <div class="quick-links">
-      <a href="https://flashpointarchive.org" target="_blank">FLASHPOINT ARCHIVE</a>
-      <a href="https://archive.org/details/flash_games" target="_blank">ARCHIVE.ORG FLASH</a>
-      <a href="https://ruffle.rs" target="_blank">RUFFLE PROJECT</a>
-    </div>
+    <iframe id="arcade-frame" title="Browser arcade game" src="https://archive.org/embed/arcade_1942"
+      allow="autoplay; gamepad" allowfullscreen loading="eager" referrerpolicy="no-referrer"
+      style="display:block;width:100%;height:min(70vh,700px);min-height:420px;margin-top:12px;border:1px solid var(--border);background:#000;"></iframe>
   </div>
 
   <footer>
@@ -336,285 +241,27 @@
 
 <script>
 (function() {
-  const canvas = document.getElementById('matrix-bg');
-  const ctx = canvas.getContext('2d');
-  let w, h, columns, drops;
-  const fontSize = 14;
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+-=[]{}|;:,.<>?/~`アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+  window.MH.matrixRain();
 
-  function resize() {
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = window.innerHeight;
-    columns = Math.floor(w / fontSize);
-    drops = [];
-    for (let i = 0; i < columns; i++) {
-      drops[i] = Math.random() * -100;
-    }
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  function drawMatrix() {
-    if (window.mhTheme && !window.mhTheme.isMatrix()) { requestAnimationFrame(drawMatrix); return; }
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-    ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#0f0';
-    ctx.font = fontSize + 'px Courier New';
-    for (let i = 0; i < drops.length; i++) {
-      const text = chars[Math.floor(Math.random() * chars.length)];
-      ctx.globalAlpha = 0.3 + Math.random() * 0.4;
-      ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-      ctx.globalAlpha = 1;
-      if (drops[i] * fontSize > h && Math.random() > 0.975) {
-        drops[i] = 0;
-      }
-      drops[i]++;
-    }
-    requestAnimationFrame(drawMatrix);
-  }
-  drawMatrix();
-
-  const fileInput = document.getElementById('file-input');
-  const dropZone = document.getElementById('drop-zone');
-  const playerContainer = document.getElementById('player-container');
-  const playerPlaceholder = document.getElementById('player-placeholder');
-  const btnFullscreen = document.getElementById('btn-fullscreen');
-  const btnRestart = document.getElementById('btn-restart');
-  const statusLine = document.getElementById('status-line');
-
-  let currentObjectUrl = null;
-  let currentFileName = '';
-  let isPaused = false;
-  let rufflePlayerEl = null;
-
-  function setBtn(id, enabled, label) {
-    var b = document.getElementById(id);
-    if (!b) return;
-    b.disabled = !enabled;
-    if (label) b.textContent = label;
-  }
-
-  function makeRufflePlayer() {
-    var ruffle = getRuffle();
-    if (!ruffle) return null;
-    try {
-      var p = ruffle.createPlayer();
-      p.style.width = '100%';
-      p.style.height = '100%';
-      return p;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Lokalny Ruffle 0.7.1 (self-hosted, /static/vendor/ruffle/).
-  // Stary pakiet npm @ruffle/ruffle zniknął z upstream (404 na unpkg i jsdelivr),
-  // więc strona nie używa już żadnego CDN — odtwarzanie jest w tej karcie.
-  function getRuffle() {
-    try {
-      if (window.RufflePlayer && typeof window.RufflePlayer.newest === 'function') {
-        return window.RufflePlayer.newest();
-      }
-    } catch (e) { /* brak Ruffle */ }
-    return null;
-  }
-  (function checkRuffle() {
-    var w = document.getElementById('ruffle-warning');
-    var ruffle = getRuffle();
-    if (ruffle) {
-      var v = '';
-      try { v = ruffle.version || ruffle.RUFFLE_VERSION || ''; } catch (e) {}
-      w.style.display = 'block';
-      w.style.color = 'var(--green)';
-      w.textContent = 'RUFFLE OK (lokalnie' + (v ? ', v' + v : '') + '): upuść .swf, gra ruszy w tej karcie. Pliki nie opuszczają Twojego komputera.';
-      return;
-    }
-    w.style.display = 'block';
-    w.innerHTML = 'RUFFLE NIEDOSTĘPNE: brak /static/vendor/ruffle/ruffle.js. '
-      + 'Użyj <a href="https://ruffle.rs/#downloads" target="_blank" rel="noopener" style="color:var(--green)">desktop Ruffle</a> '
-      + 'albo rozszerzenia Ruffle. Twoje .swf i tak zostają lokalnie.';
-  })();
-
-  dropZone.addEventListener('dragover', function(e) {
-    e.preventDefault();
-    dropZone.classList.add('drag-over');
-  });
-  dropZone.addEventListener('dragleave', function() {
-    dropZone.classList.remove('drag-over');
-  });
-  dropZone.addEventListener('drop', function(e) {
-    e.preventDefault();
-    dropZone.classList.remove('drag-over');
-    const files = e.dataTransfer.files;
-    if (files.length > 0) loadSwf(files[0]);
-  });
-  fileInput.addEventListener('change', function() {
-    if (fileInput.files.length > 0) loadSwf(fileInput.files[0]);
-  });
-
-  function formatSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(2) + ' MB';
-  }
-
-  function escapeHtml(text) {
-    var d = document.createElement('div');
-    d.textContent = text;
-    return d.innerHTML;
-  }
-
-  function loadSwf(file) {
-    if (!file.name.toLowerCase().endsWith('.swf')) {
-      statusLine.innerHTML = '&gt; ERROR: NOT A SWF FILE<span class="blink">_</span>';
-      return;
-    }
-    if (currentObjectUrl) {
-      URL.revokeObjectURL(currentObjectUrl);
-    }
-    currentObjectUrl = URL.createObjectURL(file);
-    currentFileName = file.name;
-
-    document.getElementById('info-filename').textContent = file.name;
-    document.getElementById('info-filesize').textContent = formatSize(file.size);
-    statusLine.innerHTML = '&gt; LOADING: ' + escapeHtml(file.name.toUpperCase()) + '<span class="blink">_</span>';
-
-    playerPlaceholder.style.display = 'none';
-    playerContainer.classList.add('swf-loaded');
-
-    playerContainer.querySelectorAll('ruffle-player, object, embed').forEach(function(n) { n.remove(); });
-    rufflePlayerEl = makeRufflePlayer();
-    isPaused = false;
-    setBtn('btn-pause', false, '[ PAUSE ]');
-
-    if (!rufflePlayerEl) {
-      statusLine.innerHTML = '&gt; ERROR: RUFFLE MISSING<span class="blink">_</span>';
-      return;
-    }
-    playerContainer.appendChild(rufflePlayerEl);
-
-    var loaded = null;
-    try {
-      loaded = rufflePlayerEl.load({ url: currentObjectUrl, allowScriptAccess: false, backgroundColor: "#000000" });
-    } catch (e) {
-      statusLine.innerHTML = '&gt; ERROR: ' + String(e && e.message || e).toUpperCase().slice(0, 80) + '<span class="blink">_</span>';
-      return;
-    }
-    Promise.resolve(loaded).then(function() {
-      setBtn('btn-fullscreen', true);
-      setBtn('btn-restart', true);
-      setBtn('btn-pause', true, '[ PAUSE ]');
-      statusLine.innerHTML = '&gt; PLAYING: ' + escapeHtml(file.name.toUpperCase()) + '<span class="blink">_</span>';
-    }).catch(function(err) {
-      var msg = String((err && err.message) || err || 'load failed').toUpperCase().slice(0, 100);
-      statusLine.innerHTML = '&gt; ERROR: ' + msg + '<span class="blink">_</span>';
-    });
-    return;
-  }
-
-  window.restartSwf = function() {
-    if (!currentObjectUrl || !currentFileName || !rufflePlayerEl) return;
-    statusLine.innerHTML = '&gt; RESTARTING...<span class="blink">_</span>';
-    try {
-      var loaded = rufflePlayerEl.load({ url: currentObjectUrl, allowScriptAccess: false, backgroundColor: "#000000" });
-      Promise.resolve(loaded).then(function() {
-        isPaused = false;
-        setBtn('btn-pause', true, '[ PAUSE ]');
-        statusLine.innerHTML = '&gt; PLAYING: ' + escapeHtml(currentFileName.toUpperCase()) + '<span class="blink">_</span>';
-      }).catch(function(err) {
-        statusLine.innerHTML = '&gt; ERROR: ' + String((err && err.message) || err).toUpperCase().slice(0, 100) + '<span class="blink">_</span>';
-      });
-    } catch (e) {
-      statusLine.innerHTML = '&gt; ERROR: ' + String(e && e.message || e).toUpperCase().slice(0, 80) + '<span class="blink">_</span>';
-    }
+  const arcadeGames = {
+    arcade_1942: '1942',
+    arcade_invaders: 'Space Invaders',
+    arcade_20pacgal: 'Ms. Pac-Man / Galaga'
   };
-
-  window.toggleFullscreen = function() {
-    try {
-      if (rufflePlayerEl && typeof rufflePlayerEl.enterFullscreen === 'function') {
-        rufflePlayerEl.enterFullscreen();
-        return;
-      }
-    } catch (e) {}
-    if (!document.fullscreenElement) {
-      playerContainer.requestFullscreen().catch(function() {});
-    } else {
-      document.exitFullscreen();
-    }
-  };
-
-  // Ruffle 0.7 nie wystawia publicznego mute w API JS, więc przycisk robi
-  // uczciwą PAUZĘ (play/pause), a nie ściemnianie obrazu udające wyciszenie.
-  window.togglePause = function() {
-    if (!rufflePlayerEl) return;
-    try {
-      if (!isPaused) {
-        if (typeof rufflePlayerEl.pause === 'function') rufflePlayerEl.pause();
-        else if (typeof rufflePlayerEl.suspend === 'function') rufflePlayerEl.suspend();
-        isPaused = true;
-        setBtn('btn-pause', true, '[ RESUME ]');
-        statusLine.innerHTML = '&gt; PAUSED<span class="blink">_</span>';
-      } else {
-        if (typeof rufflePlayerEl.play === 'function') rufflePlayerEl.play();
-        else if (typeof rufflePlayerEl.resume === 'function') rufflePlayerEl.resume();
-        isPaused = false;
-        setBtn('btn-pause', true, '[ PAUSE ]');
-        statusLine.innerHTML = '&gt; PLAYING: ' + escapeHtml(currentFileName.toUpperCase()) + '<span class="blink">_</span>';
-      }
-    } catch (e) {
-      statusLine.innerHTML = '&gt; ERROR: ' + String(e && e.message || e).toUpperCase().slice(0, 80) + '<span class="blink">_</span>';
-    }
-  };
+  const arcadeSelect = document.getElementById('arcade-game');
+  const arcadeFrame = document.getElementById('arcade-frame');
+  function loadArcadeGame() {
+    const id = arcadeSelect.value;
+    if (!Object.prototype.hasOwnProperty.call(arcadeGames, id)) return;
+    const url = 'https://archive.org/embed/' + id;
+    arcadeFrame.src = url;
+    arcadeFrame.title = arcadeGames[id];
+  }
+  document.getElementById('arcade-load').addEventListener('click', loadArcadeGame);
+  arcadeSelect.addEventListener('change', loadArcadeGame);
 })();
 </script>
 
-    <!-- Pancerny viewer (sandboxed iframe) -->
-    <div style="max-width:900px;margin:20px auto;padding:15px;border:1px solid var(--border);background:var(--card);">
-      <h3 style="color:var(--green);margin-bottom:10px;">PANCERNY VIEWER (sandboxed iframe)</h3>
-      <p style="font-size:0.8em;opacity:0.7;margin-bottom:10px;">
-        Strona ładuje się w izolowanej ramce (sandbox). Nie ma dostępu do systemu plików,
-        nie może pobierać plików, otwierać popupów ani manipulować formularzami.
-        Niektóre strony blokują osadzanie (X-Frame-Options) — wtedy otwórz w nowej karcie.
-      </p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-        <button class="btn" onclick="loadSandbox('https://flashpointarchive.org')">Flashpoint</button>
-        <button class="btn" onclick="loadSandbox('https://archive.org/details/flash_games')">Internet Archive</button>
-        <button class="btn" onclick="loadSandbox('https://www.newgrounds.com/games')">Newgrounds</button>
-        <button class="btn" onclick="loadSandbox('https://www.kongregate.com/games')">Kongregate</button>
-        <button class="btn" onclick="loadSandbox('https://armorgames.com')">Armor Games</button>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <input type="text" id="sandbox-url" placeholder="https://..." style="flex:1;padding:6px 10px;background:var(--card);border:1px solid var(--border);color:var(--green);font-family:inherit;font-size:0.85em;">
-        <button class="btn" onclick="loadSandbox(document.getElementById('sandbox-url').value)">Załaduj</button>
-        <button class="btn" onclick="document.getElementById('sandbox-frame').src='about:blank'">Wyczyść</button>
-      </div>
-      <iframe id="sandbox-frame" sandbox="allow-scripts" allow="gamepad" loading="lazy" referrerpolicy="no-referrer"
-        style="width:100%;height:500px;border:1px solid var(--border);background:#000;"></iframe>
-      <p id="sandbox-note" style="font-size:0.75em;opacity:0.6;margin-top:8px;"></p>
-    </div>
-
-    <script>
-      function loadSandbox(url) {
-        var parsed;
-        try { parsed = new URL(url); } catch (e) { parsed = null; }
-        if (!parsed || (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')) {
-          document.getElementById('sandbox-note').textContent = 'Podaj poprawny URL (http/https).';
-          return;
-        }
-        // CodeQL: url is validated above; only http(s) protocols reach here.
-        var safeUrl = parsed.href;
-        var frame = document.getElementById('sandbox-frame');
-        var note = document.getElementById('sandbox-note');
-        note.textContent = 'Ładowanie: ' + safeUrl;
-        frame.src = safeUrl;
-        frame.onload = function() {
-          note.textContent = 'Załadowano: ' + safeUrl + ' (jeśli strona jest pusta, blokuje osadzanie — otwórz w nowej karcie).';
-        };
-        frame.onerror = function() {
-          note.textContent = 'Błąd ładowania — strona może blokować osadzanie. Otwórz w nowej karcie.';
-        };
-      }
-    </script>
     <script src="/tools/theme.js"></script>
     <script src="/tools/api.js"></script>
     <script src="/tools/lang.js"></script>

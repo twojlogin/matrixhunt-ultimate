@@ -40,8 +40,5 @@ __pycache__/
 # w repo, żeby instalacja bez node działała od razu. Po zmianie offers.jsx
 # uruchom: node tools/build_frontend.js
 #
-# frontend/vendor/ruffle/ (Ruffle 0.7.1 self-hosted, ~28 MB) też ZOSTAJE:
-# /flash bez tego nie gra offline. Alternatywa to Git LFS, gdyby rosło.
-#
 # Roboczy dokument z notatkami sesji: lokalne sciezki i niedokonczone mysli.
 CEL_NAPRAWCZY.md

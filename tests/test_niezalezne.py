@@ -274,7 +274,7 @@ def test_Q8_celem_FileResponse_jest_prawdziwy_plik():
     assert not brak, f"FileResponse w nieistniejący plik: {brak}"
 
 
-# ============================================================ Q9: offline (zero CDN) + Ruffle na miejscu
+# ============================================================ Q9: zasoby aplikacji i ekran arcade
 def test_Q9_zaden_skrypt_ani_styl_z_cdn():
     zle = []
     for p in (ROOT / "frontend").glob("*.html"):
@@ -284,13 +284,15 @@ def test_Q9_zaden_skrypt_ani_styl_z_cdn():
     assert not zle, f"zasoby z CDN (apka ma być offline): {zle}"
 
 
-def test_Q9_ruffle_jest_lokalnie():
-    assert (ROOT / "frontend" / "vendor" / "ruffle" / "ruffle.js").exists()
-    assert list((ROOT / "frontend" / "vendor" / "ruffle").glob("*.wasm")), "brak .wasm Ruffle"
+def test_Q9_flash_odtwarza_arcade_bez_lokalnego_playera():
     tekst = (ROOT / "tools" / "flash_player.html").read_text(encoding="utf-8")
     zle = re.findall(r'<(?:script|link)[^>]+(?:src|href)="http[^"]*"[^>]*>', tekst)
     assert not zle, f"player ciągnie z sieci: {zle}"
-    assert "/static/vendor/ruffle/ruffle.js" in tekst
+    assert 'id="arcade-game"' in tekst
+    assert 'id="arcade-frame"' in tekst
+    assert "https://archive.org/embed/" in tekst
+    assert "RufflePlayer" not in tekst
+    assert 'id="file-input"' not in tekst
 
 
 # ============================================================ Q11: bramka 18+ w API i RSS
@@ -775,12 +777,17 @@ def test_Q15_linkdoctor_werdykty_bez_sieci(monkeypatch):
 def test_Q15b_linkdoctor_mlode_domeny_i_pomocnicze(monkeypatch):
     import cleaner
     import linkdoctor
+    from scrapers.base import DANGEROUS_EXT
     monkeypatch.setattr(cleaner, "is_url_allowed", lambda u: (True, ""))
     monkeypatch.setattr(linkdoctor, "_resolve_redirects",
                         lambda u, max_hops=5: (u, 0, None))
     monkeypatch.setattr(linkdoctor, "_doh_security", lambda h: False)
 
     assert linkdoctor._dangerous_ext("https://x.com/a/b.exe") == ".exe"
+    for ext in DANGEROUS_EXT:
+        assert linkdoctor._dangerous_ext(f"https://x.com/download/file{ext}") == ext
+    for ext in (".html", ".zip", ".pdf", ".com", ".txt"):
+        assert linkdoctor._dangerous_ext(f"https://x.com/page{ext}") is None
     assert linkdoctor._dangerous_ext("https://x.com/game") is None
     assert linkdoctor.is_shortener("bit.ly") and not linkdoctor.is_shortener("steam.com")
     assert linkdoctor._idn_flags("xn--pypal-4ve.com")
@@ -814,6 +821,4 @@ def test_Q16_clean_html_blokuje_obfuskowany_javascript():
 
     out, _, _ = clean_html('<a href="https://ex.com/gra">x</a>', "https://ex.com")
     assert 'href="https://ex.com/gra"' in out, out
-
-
 

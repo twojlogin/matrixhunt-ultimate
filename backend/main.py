@@ -67,10 +67,6 @@ if _MH_PUBLIC:
     print("[MH_PUBLIC] tryb tylko-do-odczytu: zapisy i scrapowanie zablokowane")
 app.mount("/tools", StaticFiles(directory=str(TOOLS_DIR)), name="tools")
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend-static")
-# Ruffle self-hosted (.wasm) musi mieć application/wasm, inaczej przeglądarka
-# odmawia inicjalizacji. Na części systemów mimetypes nie zna .wasm.
-import mimetypes as _mimetypes
-_mimetypes.add_type("application/wasm", ".wasm")
 # /data is NOT a blanket static mount. It held data/vulncheck.json, which
 # pins the exact version of every installed dependency, and that file was
 # served to anyone who asked for /data/vulncheck.json with no token. Only the

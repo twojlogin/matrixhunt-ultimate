@@ -306,16 +306,16 @@
         .hash-status.clean { color: var(--green); border-color: var(--green); }
         .hash-status.warning { color: var(--red); border-color: var(--red); }
 
-        /* FLASHPOINT BOX */
-        .flashpoint-box {
+        /* Browser-playable arcade box */
+        .arcade-box {
             border: 1px solid var(--cyan);
             background: var(--card);
             padding: 20px; margin: 15px 0;
         }
-        .flashpoint-box h3 { color: var(--cyan); font-size: 1em; letter-spacing: 2px; margin-bottom: 10px; }
-        .flashpoint-box p { font-size: 0.8em; opacity: 0.7; margin: 4px 0; }
-        .flashpoint-box a { color: #0ff; font-size: 0.8em; }
-        .flashpoint-box .stat {
+        .arcade-box h3 { color: var(--cyan); font-size: 1em; letter-spacing: 2px; margin-bottom: 10px; }
+        .arcade-box p { font-size: 0.8em; opacity: 0.7; margin: 4px 0; }
+        .arcade-box a { color: #0ff; font-size: 0.8em; }
+        .arcade-box .stat {
             font-size: 1.4em; color: #0ff; margin: 10px 0;
             letter-spacing: 2px; font-weight: bold;
         }
@@ -504,31 +504,17 @@
         <div id="tab-flash" class="tab-content">
             <div class="section-title">// FLASH GAME ARCHIVE</div>
 
-            <div class="flashpoint-box">
-                <h3>FLASHPOINT ARCHIVE (BlueMaxima)</h3>
-                <div class="stat">220,637+ GAMES PRESERVED</div>
-                <p>World's largest web game preservation effort. Supports Flash, Shockwave, HTML5, Java, Unity Web.</p>
+            <div class="arcade-box">
+                <h3>PLAY ARCADE GAMES IN YOUR BROWSER</h3>
+                <div class="stat">NO GAME FILE DOWNLOAD REQUIRED</div>
+                <p>Pick a game in the built-in player. It streams from Internet Archive and opens there without installing a launcher.</p>
                 <p style="margin-top:10px;">
-                    <a href="https://flashpointarchive.org">Flashpoint Archive &raquo;</a> &nbsp;|&nbsp;
-                    <a href="https://flashpointarchive.org/search">Search Games &raquo;</a> &nbsp;|&nbsp;
-                    <a href="https://flashpointarchive.org/downloads">Download Flashpoint &raquo;</a>
+                    <a href="/flash">OPEN THE IN-APP ARCADE &raquo;</a>
                 </p>
             </div>
 
-            <div class="flashpoint-box" style="border-color:var(--cyan);margin-top:12px;">
-                <h3>BUILT-IN FLASH PLAYER (RUFFLE 0.7.1, LOKALNIE)</h3>
-                <p>Player jest wbudowany w tę aplikację i działa offline, w tej samej karcie — bez rozszerzeń i bez CDN. Upuść plik .swf na stronie /flash.</p>
-                <p style="margin-top:8px;">
-                    <a href="/flash" rel="noopener">Otwórz /flash &raquo;</a> &nbsp;|&nbsp;
-                    <a href="https://archive.org/details/flash_games" target="_blank" rel="noopener">Browse Collection &raquo;</a> &nbsp;|&nbsp;
-                    <a href="https://ruffle.rs" target="_blank" rel="noopener">Ruffle Project &raquo;</a>
-                </p>
-            </div>
-
-            <div style="margin-top:15px;"><a href="/flash" style="color:var(--cyan);text-decoration:none;font-size:0.9em;border:1px solid var(--cyan);padding:8px 15px;" data-i18n="retro.openflash">OPEN FLASH PLAYER &raquo;</a></div>
-
-            <div class="section-title" style="margin-top:25px;">// LEGENDARY FLASH GAMES</div>
-            <div class="cards-grid" id="flash-grid"></div>
+            <div class="section-title" style="margin-top:25px;">// PLAY IN YOUR BROWSER</div>
+            <a class="card" href="/flash"><h3>OPEN THE IN-APP ARCADE</h3><p>Choose an arcade game and play it here without downloading a game file.</p></a>
         </div>
 
         <!-- TAB 6: HASH VERIFIER -->
@@ -670,41 +656,6 @@
                 '<div class="reason">Reason: ' + g.reason + '</div>' +
                 '<a href="' + link + '" target="_blank" rel="noopener">Steam Store &raquo;</a>' +
                 '</div>';
-        });
-
-        // Flash legendary games
-        const flashGames = [
-            { title: "Happy Wheels", cat: "physics", q: "Happy Wheels" },
-            { title: "Line Rider", cat: "puzzle", q: "Line Rider" },
-            { title: "N (The Way of the Ninja)", cat: "platformer", q: "N The Way of the Ninja" },
-            { title: "QWOP", cat: "sports", q: "QWOP" },
-            { title: "Electricman 2", cat: "action", q: "Electricman 2" },
-            { title: "Bloons Tower Defense 5", cat: "strategy", q: "Bloons Tower Defense 5" },
-            { title: "Fancy Pants Adventure", cat: "platformer", q: "Fancy Pants Adventure" },
-            { title: "The Impossible Game", cat: "rhythm", q: "The Impossible Game" },
-            { title: "Interactive Buddy", cat: "sandbox", q: "Interactive Buddy" },
-            { title: "Ultimate Custom Night", cat: "horror", q: "Ultimate Custom Night" },
-            { title: "Learn to Fly", cat: "arcade", q: "Learn to Fly" },
-            { title: "Age of War", cat: "strategy", q: "Age of War" },
-            { title: "Desktop Tower Defense", cat: "strategy", q: "Desktop Tower Defense" },
-            { title: "Meat Boy (original)", cat: "platformer", q: "Meat Boy original flash" },
-            { title: "Samorost", cat: "puzzle", q: "Samorost" },
-            { title: "Machinarium", cat: "adventure", q: "Machinarium" },
-            { title: "Sonny", cat: "rpg", q: "Sonny" },
-            { title: "Dad 'n Me", cat: "action", q: "Dad n Me" },
-            { title: "Crush the Castle", cat: "physics", q: "Crush the Castle" },
-            { title: "Thing-Thing", cat: "action", q: "Thing Thing" }
-        ];
-        const fg = document.getElementById('flash-grid');
-        flashGames.forEach(g => {
-            var q = encodeURIComponent(g.q);
-            var card = document.createElement('a');
-            card.className = 'flash-card';
-            card.href = 'https://flashpointarchive.org/search?query=' + q;
-            card.innerHTML = '<h3>' + g.title + '</h3>' +
-                '<div class="cat">CATEGORY: ' + g.cat.toUpperCase() + '</div>' +
-                '<div style="font-size:0.7em;margin-top:6px;opacity:0.7;">Szukaj w Flashpoint &raquo;</div>';
-            fg.appendChild(card);
         });
 
         // ===== CAN YOU EMULATE IT? =====

@@ -12,6 +12,8 @@ import datetime as _dt
 import re
 from urllib.parse import urljoin, urlparse
 
+from scrapers.base import DANGEROUS_EXT
+
 UA = "MatrixHunt/2.0 (linkdoctor)"
 
 # Skracacze, ktore same w sobie nic nie mowia o celu - trzeba je rozwinac.
@@ -58,7 +60,8 @@ def _dangerous_ext(url):
     last = path.rsplit("/", 1)[-1].lower()
     if "." not in last:
         return None
-    return "." + last.rsplit(".", 1)[-1]
+    ext = "." + last.rsplit(".", 1)[-1]
+    return ext if ext in DANGEROUS_EXT else None
 
 
 def _idn_flags(host):

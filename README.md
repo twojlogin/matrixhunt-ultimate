@@ -1,10 +1,10 @@
 # MatrixHunt Ultimate
 
 > Lokalny agregator darmowych gier: zbiera oferty ze sklepów, pokazuje je w przeglądarce,
-> czyści strony z reklam i trackerów. Zero chmury, zero CDN — React, Babel i Ruffle
+> czyści strony z reklam i trackerów. Zero chmury, zero CDN — React i Babel
 > są zvendorowane, baza to lokalny SQLite.
 
-`Python 3.12 · FastAPI · SQLite (WAL) · 46 tras API · 105 testów przechodzi (3 pominięte bez node) · offline-first`
+`Python 3.12 · FastAPI · SQLite (WAL) · 46 tras API · pytest · offline-first`
 
 ## Spis treści
 
@@ -53,7 +53,8 @@ Wszystkie podstrony mają górne menu z 10 linkami — nic nie jest schowane w s
 | `/retro` | hub emulatorowy + skan sprzętu (rozdz. 7) |
 | `/pad` | test pada (Gamepad API) |
 | `/wiki`, `/bookmarks` | wiki, zakładki |
-| `/flash` | player Flash: upuść `.swf`, gra w tej samej karcie |
+| `/flash` | gry arcade uruchamiane w przeglądarce, bez pobierania plików |
+| `/muzeum` | lokalne próbki treści odrzuconych przez sanityzer |
 | `/uwagi` | uwagi |
 
 ## 3. API
@@ -139,13 +140,13 @@ ukrywa, RAM 8 GB = możliwy limit Chromium, Vulkan = UNKNOWN gdy niewykrywalny,
 zamaskowany renderer GPU = wynik szacowany. Na Windows + Chrome wynik wiarygodny,
 na Firefox/Safari pesymistyczny.
 
-`/flash` gra lokalnie dzięki **Ruffle 0.7.1 self-hosted** (`frontend/vendor/ruffle/`,
-bez CDN). Przycisk pauzy to pauza — Ruffle 0.7 nie daje API do głośności.
+`/flash` osadza wybraną grę z Internet Archive. Nie wymaga pobierania ani
+otwierania lokalnych plików; do działania potrzebuje połączenia z internetem.
 
 ## 8. Testy
 
 ```bash
-.venv/bin/python -m pytest tests/ -q        # 2026-10-19: 105 passed, 6 skipped
+.venv/bin/python -m pytest tests/ -q
 node tools/smoke_render.js                  # render `/`, `/offers`, `/view` bez przeglądarki
 ./weryfikuj.sh                               # pełna weryfikacja z siecią (uwaga: start serwera = scrape, >120 s)
 ./sync.sh <katalog-docelowy>                # lustro do drugiej kopii (bez twardych ścieżek)
@@ -154,6 +155,8 @@ node tools/smoke_render.js                  # render `/`, `/offers`, `/view` bez
 
 | Plik | Co sprawdza |
 |---|---|
+| `tests/test_release_security.py` | regresje zabezpieczeń API, proxy i HTML |
+| `tests/test_verify_seeds.py` | seed catalog: odrzucanie cen promocyjnych i brak potwierdzenia ceny |
 | `tests/test_ceny.py` | niezmienniki cen na prawdziwych plikach i bazie (żadnego `Free` bez `api:*`) |
 | `tests/test_niezmienniki.py` | filtry, baza, serwer, F2P/DLC |
 | `tests/test_niezalezne.py` | zachowanie na spreparowanych danych: logika cen, SSRF, migracja, martwe linki, offline, punktacja JS, bramka 18+, parser Łowców, render frontendów, sklejanie bliźniaków, jeden `site.js`, kanon 10 linków + filtr źródeł, toggle PL/EN, sanityzer wstrzyknięć i muzeum okazów, link doctor |
@@ -165,10 +168,10 @@ przy żywym błędzie (`Deal.price` domyślnie `"Free"`), dopisaliśmy testy, kt
 
 ```
 backend/            # FastAPI: main.py, scrapers/, cleaner, vault, sessions, DB
-frontend/           # / i /offers (React zvendorowany) + vendor/ (Ruffle, Babel)
+frontend/           # / i /offers (React zvendorowany) + vendor/ (Babel)
 tools/              # strony /view /retro /wiki /flash /db /muzeum + skrypty (build, smoke, skan)
 data/               # retro.json, bookmarks.json, seed_offers.json (36 zweryfikowanych tytułów F2P)
-tests/              # 3 pliki, 105 testów (wszystkie przechodzą z serwerem; 3 pomija się bez node)
+tests/              # testy jednostkowe, integracyjne i regresyjne
 ```
 
 Runtime (gitignorowane, nie w repo): `.venv/`, `matrixhunt.db*`, `.cookies/`,
@@ -210,6 +213,13 @@ Część kodu i poprawek (sanityzacja, testy niezmienników, audyt bezpieczeńst
 seed catalog, CI, bootstrap) była pisana z pomocą **AI** (Claude / Anthropic) —
 traktuj to jako narzędzie, nie autora. Cała odpowiedzialność za kod spoczywa
 na autorze.
+
+Pomoc AI w tym projekcie zawiodła: wcześniejsze odpowiedzi zbyt pewnie
+sugerowały, że problemy rozwiązano, opierając się na testach bez pełnego
+przeglądu logiki i działania aplikacji. To było niewystarczające i mogło
+wprowadzić użytkownika w błąd. Zielone testy potwierdzają tylko sprawdzone
+scenariusze — nie dowodzą, że aplikacja jest wolna od błędów ani że cały
+projekt został przejrzany. AI nie zastępuje rzetelnej weryfikacji zmian.
 
 ## 11. Licencja
 

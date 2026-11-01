@@ -127,44 +127,13 @@
     }
   },
   "flashGames": {
-    "flashpoint": {
-      "name": "Flashpoint Archive (BlueMaxima)",
-      "url": "https://flashpointarchive.org",
-      "totalGames": "220,637+",
-      "launcher": {
-        "infinity": { "name": "Flashpoint Infinity", "desc": "Lightweight streaming launcher", "url": "https://flashpointarchive.org/downloads" },
-        "ultimate": { "name": "Flashpoint Ultimate", "desc": "Full offline archive (1TB+)", "url": "https://flashpointarchive.org/downloads" }
-      },
-      "technologies": ["Flash", "Shockwave", "HTML5", "Java", "Unity Web"],
-      "description": "World's largest web game preservation effort"
-    },
-    "archiveOrg": {
-      "name": "Archive.org Flash Collection",
-      "url": "https://archive.org/details/flash_games",
-      "note": "Install Ruffle extension to play .swf in browser",
-      "ruffleUrl": "https://ruffle.rs"
-    },
-    "legendaryGames": [
-      { "title": "Happy Wheels", "source": "Flashpoint", "category": "physics" },
-      { "title": "Line Rider", "source": "Flashpoint", "category": "puzzle" },
-      { "title": "N (The Way of the Ninja)", "source": "Flashpoint", "category": "platformer" },
-      { "title": "QWOP", "source": "Flashpoint", "category": "sports" },
-      { "title": "Electricman 2", "source": "Flashpoint", "category": "action" },
-      { "title": "Bloons Tower Defense 5", "source": "Flashpoint", "category": "strategy" },
-      { "title": "Fancy Pants Adventure", "source": "Flashpoint", "category": "platformer" },
-      { "title": "The Impossible Game", "source": "Flashpoint", "category": "rhythm" },
-      { "title": "Interactive Buddy", "source": "Flashpoint", "category": "sandbox" },
-      { "title": "Ultimate Custom Night", "source": "Flashpoint", "category": "horror" },
-      { "title": "Learn to Fly", "source": "Flashpoint", "category": "arcade" },
-      { "title": "Age of War", "source": "Flashpoint", "category": "strategy" },
-      { "title": "Desktop Tower Defense", "source": "Flashpoint", "category": "strategy" },
-      { "title": "Meat Boy (original)", "source": "Flashpoint", "category": "platformer" },
-      { "title": "Samorost", "source": "Flashpoint", "category": "puzzle" },
-      { "title": "Machinarium", "source": "Flashpoint", "category": "adventure" },
-      { "title": "Sonny", "source": "Flashpoint", "category": "rpg" },
-      { "title": "Dad 'n Me", "source": "Flashpoint", "category": "action" },
-      { "title": "Crush the Castle", "source": "Flashpoint", "category": "physics" },
-      { "title": "Thing-Thing", "source": "Flashpoint", "category": "action" }
-    ]
+    "internetArcade": {
+      "name": "Internet Archive Internet Arcade",
+      "games": [
+        { "title": "1942", "identifier": "arcade_1942" },
+        { "title": "Space Invaders", "identifier": "arcade_invaders" },
+        { "title": "Ms. Pac-Man / Galaga", "identifier": "arcade_20pacgal" }
+      ]
+    }
   }
 }
