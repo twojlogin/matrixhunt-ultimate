@@ -10,8 +10,7 @@ AREK=""
 for cand in \
   "${AREK_BOOTSTRAP:-}" \
   "$HOME/.local/bin/arek-bootstrap" \
-  "$HOME/Projekty/Inne/arek-bootstrap/bootstrap.sh" \
-  "/home/h5n1/Projekty/Inne/arek-bootstrap/bootstrap.sh"; do
+  "$HOME/Projekty/Inne/arek-bootstrap/bootstrap.sh"; do
   if [ -n "$cand" ] && [ -x "$cand" ]; then
     AREK="$cand"
     break

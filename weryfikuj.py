@@ -77,9 +77,18 @@ def get(path, timeout=20):
         with urllib.request.urlopen(BASE + path, timeout=timeout) as r:
             return r.getcode(), r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
-        return e.code, ""
+        return e.code, e.read().decode("utf-8", "replace")
     except Exception:
         return 0, ""
+
+
+def proxy_get(url, timeout=20):
+    status, config = get("/api/client-config")
+    token = json.loads(config).get("token", "") if status == 200 else ""
+    if not token:
+        return status or 0, config
+    query = urllib.parse.urlencode({"url": url, "token": token})
+    return get("/api/clean?" + query, timeout=timeout)
 
 
 # ---------------------------------------------------------------- trasy
@@ -149,7 +158,7 @@ def v_token():
 # ---------------------------------------------------------------- proxy
 def v_proxy():
     print("\n[4] Proxy i SSRF")
-    c, body = get("/api/clean?url=" + urllib.parse.quote("https://example.com/", safe=""))
+    c, body = proxy_get("https://example.com/")
     check("proxy zwraca 200", c == 200, str(c))
     check("proxy zachowuje tresc", "Example Domain" in body)
     check("proxy usuwa skrypty", "<script" not in body.lower())
@@ -158,8 +167,9 @@ def v_proxy():
               "http://169.254.169.254/latest/meta-data/",
               "file:///etc/passwd",
               "http://localhost:8000/"):
-        c, _ = get("/api/clean?url=" + urllib.parse.quote(u, safe=""), timeout=25)
-        check(f"SSRF blokowany: {u[:34]}", c == 403, str(c))
+        c, body = proxy_get(u, timeout=25)
+        check(f"SSRF blokowany: {u[:34]}",
+              c == 403 and "blocked" in body.lower(), f"{c}: {body[:80]}")
 
 
 # ---------------------------------------------------------------- filtry
@@ -269,8 +279,7 @@ def v_sklepy():
     print("\n[9] Realne strony przez proxy (wolne, ~40s)")
     for u in ("https://www.gog.com", "https://itch.io",
               "https://www.humblebundle.com"):
-        enc = urllib.parse.quote(u, safe="")
-        c, body = get("/api/clean?url=" + enc, timeout=60)
+        c, body = proxy_get(u, timeout=60)
         low = body.lower()
         tyt = re.search(r"<title[^>]*>(.*?)</title>", body, re.S)
         tyt = (tyt.group(1).strip()[:44] if tyt else "")

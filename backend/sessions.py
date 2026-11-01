@@ -40,15 +40,19 @@ def load_jar(host):
     try:
         raw = path.read_bytes()
         data = vault.unseal(raw)
-    except ValueError as e:
+    except ValueError:
         # Vault locked on a sealed file: this is NOT an empty jar. Report it
         # so list_sessions can say "locked" instead of "logged out", and so
         # nobody concludes the sessions are gone.
         jar = MozillaCookieJar(str(path))
         jar.locked = True
         return jar
-    except Exception:
-        return MozillaCookieJar(str(path))
+    except Exception as e:
+        print(f"[sessions] could not read {path.name}; preserving it: "
+              f"{type(e).__name__}: {e}")
+        jar = MozillaCookieJar(str(path))
+        jar.locked = True
+        return jar
     try:
         try:
             items = json.loads(data.decode("utf-8"))
@@ -63,8 +67,11 @@ def load_jar(host):
             pass
         # Legacy Netscape plaintext: load the old way.
         jar.load(ignore_discard=True, ignore_expires=True)
-    except Exception:
+    except Exception as e:
+        print(f"[sessions] invalid cookie data in {path.name}; preserving it: "
+              f"{type(e).__name__}: {e}")
         jar = MozillaCookieJar(str(path))
+        jar.locked = True
     return jar
 
 
@@ -76,31 +83,47 @@ def save_jar(jar):
     cause the next page load to overwrite the encrypted jar in the clear.
     If the file on disk is already sealed, we leave it alone.
     """
-    JAR_DIR.mkdir(mode=0o700, exist_ok=True)
-    from vault import vault, cookie_to_dict
+    from vault import VERIFIER_PATH, vault, cookie_to_dict
     import json as _json
+    import os
+    import tempfile
     try:
+        JAR_DIR.mkdir(mode=0o700, exist_ok=True)
+        JAR_DIR.chmod(0o700)
         path = jar_path(host_of(jar))
-        if path.exists():
-            try:
-                if path.read_bytes().startswith(b"VAULT1:") and vault.locked:
-                    # Warn once per (jar, process): save_jar runs on every
-                    # proxied page load, so an unconditional print flooded
-                    # the log.
-                    global _SEAL_WARNED
-                    if path.name not in _SEAL_WARNED:
-                        _SEAL_WARNED.add(path.name)
-                        print(f"[sessions] vault locked - keeping {path.name} "
-                              f"sealed, cookies not persisted until unlock")
-                    return
-            except OSError:
-                pass
+        if getattr(jar, "locked", False):
+            print(f"[sessions] preserving unreadable jar "
+                  f"{Path(jar.filename).name if getattr(jar, 'filename', None) else '?'}")
+            return
+        if vault.locked and VERIFIER_PATH.exists():
+            print("[sessions] vault locked - refusing to write cookies in plaintext")
+            return
+        if path.exists() and path.read_bytes().startswith(b"VAULT1:") and vault.locked:
+            global _SEAL_WARNED
+            if path.name not in _SEAL_WARNED:
+                _SEAL_WARNED.add(path.name)
+                print(f"[sessions] vault locked - keeping {path.name} "
+                      f"sealed, cookies not persisted until unlock")
+            return
         payload = _json.dumps([cookie_to_dict(c) for c in jar]).encode("utf-8")
-        path.write_bytes(vault.seal(payload))
+        sealed = vault.seal(payload)
+        fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.")
         try:
-            path.chmod(0o600)
-        except OSError:
-            pass
+            os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "wb") as stream:
+                fd = -1
+                stream.write(sealed)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(tmp, path)
+        except Exception:
+            if fd >= 0:
+                os.close(fd)
+            try:
+                os.unlink(tmp)
+            except FileNotFoundError:
+                pass
+            raise
     except Exception as e:
         print(f"[sessions] save failed for {getattr(jar, 'filename', '?')}: {e}")
 
@@ -116,7 +139,8 @@ def session_state(host):
     cookies = [c for c in jar]
     return {"host": host, "cookies": len(cookies),
             "has_session": len(cookies) > 0,
-            "names": sorted({c.name for c in cookies})[:10]}
+            "names": sorted({c.name for c in cookies})[:10],
+            "locked": bool(getattr(jar, "locked", False))}
 
 
 def list_sessions():
@@ -136,7 +160,8 @@ def list_sessions():
             domains = sorted({c.domain for c in cookies if c.domain})
             out[f.stem] = {"cookies": len(cookies),
                            "has_session": len(cookies) > 0,
-                           "domains": domains[:5]}
+                           "domains": domains[:5],
+                           "locked": bool(getattr(jar, "locked", False))}
         except Exception:
             continue
     return out

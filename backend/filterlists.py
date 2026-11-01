@@ -341,11 +341,7 @@ elog = FilterLog()
 
 
 def _fetch_list(list_id, meta):
-    import requests as _requests
-    r = _requests.get(meta["url"], timeout=40,
-                      headers={"User-Agent": "MatrixHunt/2.0 (filterlists)"})
-    r.raise_for_status()
-    return r.text
+    return _safe_fetch(meta["url"], max_bytes=20 * 1024 * 1024)
 
 
 def get_engine():
@@ -426,33 +422,33 @@ def _safe_fetch(url, max_bytes=CUSTOM_MAX_BYTES, max_hops=5):
     127.0.0.1 mimo publicznego startu (redirect SSRF). Limit rozmiaru i
     timeout - to dane wprowadzone przez użytkownika.
     """
-    import requests as _requests
-    from cleaner import is_url_allowed
+    from cleaner import is_url_allowed, new_safe_session
     cur, hops = url, 0
-    while True:
-        ok, why = is_url_allowed(cur)
-        if not ok:
-            raise ValueError(f"blocked: {why}")
-        r = _requests.get(cur, timeout=40, allow_redirects=False, stream=True,
-                          headers={"User-Agent": "MatrixHunt/2.0 (filterlists)"})
-        if r.status_code in (301, 302, 303, 307, 308):
-            loc = r.headers.get("Location")
-            r.close()
-            if not loc or hops >= max_hops:
-                raise ValueError("too many redirects")
-            cur = urljoin(cur, loc)
-            hops += 1
-            continue
-        r.raise_for_status()
-        chunks, total = [], 0
-        for chunk in r.iter_content(65536):
-            total += len(chunk)
-            if total > max_bytes:
+    with new_safe_session() as session:
+        while True:
+            ok, why = is_url_allowed(cur)
+            if not ok:
+                raise ValueError(f"blocked: {why}")
+            r = session.get(cur, timeout=40, allow_redirects=False, stream=True,
+                            headers={"User-Agent": "MatrixHunt/2.0 (filterlists)"})
+            if r.status_code in (301, 302, 303, 307, 308):
+                loc = r.headers.get("Location")
                 r.close()
-                raise ValueError("list too large")
-            chunks.append(chunk)
-        r.close()
-        return b"".join(chunks).decode("utf-8", "replace")
+                if not loc or hops >= max_hops:
+                    raise ValueError("too many redirects")
+                cur = urljoin(cur, loc)
+                hops += 1
+                continue
+            r.raise_for_status()
+            chunks, total = [], 0
+            for chunk in r.iter_content(65536):
+                total += len(chunk)
+                if total > max_bytes:
+                    r.close()
+                    raise ValueError("list too large")
+                chunks.append(chunk)
+            r.close()
+            return b"".join(chunks).decode("utf-8", "replace")
 
 
 def download_custom_lists(settings=None):

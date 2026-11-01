@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -139,6 +140,172 @@ def test_pinned_adapter_connects_to_the_checked_public_ip(monkeypatch):
     assert connect.call_args.args[0] == ("93.184.216.34", 443)
     assert pool.conn_kw["server_hostname"] == "safe.example"
     assert pool.assert_hostname == "safe.example"
+
+
+def test_steam_drops_search_results_not_confirmed_free_by_api(monkeypatch):
+    from scrapers.steam import SteamScraper
+
+    class Response:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def text(self):
+            return (
+                '<a class="search_result_row" href="https://store.steampowered.com/app/100/">'
+                '<div class="title">Verified Game</div></a>'
+                '<a class="search_result_row" href="https://store.steampowered.com/app/101/">'
+                '<div class="title">Paid Search Result</div></a>'
+            )
+
+    class Session:
+        def get(self, *_args, **_kwargs):
+            return Response()
+
+    async def details(self, appid):
+        return {"type": "game", "is_free": appid == "100"}
+
+    monkeypatch.setattr(SteamScraper, "_details", details)
+    deals = asyncio.run(SteamScraper(Session()).scrape())
+    assert [deal.title for deal in deals] == ["Verified Game"]
+
+
+def test_canonical_url_keeps_nondefault_scheme_ports_distinct():
+    import main
+
+    assert main._canonical_url("http://store.example:443/game") != \
+        main._canonical_url("http://store.example/game")
+    assert main._canonical_url("https://store.example:80/game") != \
+        main._canonical_url("https://store.example/game")
+    assert main._canonical_url("https://[2001:4860:4860::8888]:8443/game") == \
+        "https://[2001:4860:4860::8888]:8443/game"
+
+
+def test_offer_urls_reject_unsafe_or_credentialed_legacy_rows():
+    import main
+
+    assert main._safe_offer_url("https://store.example/game")
+    assert not main._safe_offer_url("javascript:alert(1)")
+    assert not main._safe_offer_url("https://store.example/download%2Eexe")
+    assert not main._safe_offer_url("https://user:pass@store.example/game")
+
+
+def test_proxy_refuses_to_forward_post_body_over_http():
+    import main
+
+    response = main._clean_sync(
+        "http://store.example/login", "POST",
+        {"content-type": "application/x-www-form-urlencoded"},
+        {}, b"password=secret")
+    assert response.status_code == 403
+    assert b"HTTPS" in response.body
+
+
+def test_vault_locked_does_not_encrypt_by_plaintext_fallback(tmp_path, monkeypatch):
+    import vault
+
+    monkeypatch.setattr(vault, "VERIFIER_PATH", tmp_path / ".vault_verifier")
+    v = vault.Vault()
+    assert v.seal(b"public mode") == b"PLAIN:public mode"
+
+    vault.VERIFIER_PATH.write_text("configured")
+    with pytest.raises(ValueError, match="vault locked"):
+        v.seal(b"secret")
+    with pytest.raises(ValueError, match="vault locked"):
+        v.unseal(b"PLAIN:legacy secret")
+    with pytest.raises(ValueError, match="vault locked"):
+        v.unseal(b"legacy plaintext secret")
+
+
+def test_vault_lock_drops_cached_derived_keys():
+    import vault
+
+    vault._fernet_cache.clear()
+    vault._fernet("test password", b"0123456789abcdef")
+    assert vault._fernet_cache
+    vault.Vault().lock()
+    assert not vault._fernet_cache
+
+
+def test_vault_unlock_encrypts_and_rejects_wrong_password(tmp_path, monkeypatch):
+    import vault
+
+    monkeypatch.delenv("MH_VAULT_PASSWORD", raising=False)
+    monkeypatch.setattr(vault, "VERIFIER_PATH", tmp_path / ".vault_verifier")
+    monkeypatch.setattr(vault, "seal_plaintext_leftovers", lambda _vault: None)
+    v = vault.Vault()
+    assert v.unlock("test-vault-password")
+    encrypted = v.seal(b"private settings")
+    assert encrypted.startswith(b"VAULT1:")
+    assert b"private settings" not in encrypted
+    v.lock()
+
+    locked = vault.Vault()
+    assert not locked.unlock("wrong password")
+    assert locked.unlock("test-vault-password")
+    assert locked.unseal(encrypted) == b"private settings"
+
+
+def test_locked_vault_blocks_settings_fallback_and_cookie_writes(tmp_path, monkeypatch):
+    import settings_store
+    import sessions
+    import vault
+
+    verifier = tmp_path / ".vault_verifier"
+    monkeypatch.setattr(vault, "VERIFIER_PATH", verifier)
+    monkeypatch.setattr(settings_store, "STORE", tmp_path / ".app_settings.json")
+    monkeypatch.setattr(sessions, "JAR_DIR", tmp_path / ".cookies")
+    vault.vault.lock()
+    verifier.write_text("configured")
+    settings_store.STORE.write_bytes(b"VAULT1:unreadable")
+
+    assert settings_store.read_settings()["settings_locked"] is True
+    settings_store.STORE.write_bytes(b"PLAIN:{\"tor\":true}")
+    assert settings_store.read_settings()["settings_locked"] is True
+    with pytest.raises(PermissionError):
+        settings_store.write_setting("tor", True)
+
+    from http.cookiejar import MozillaCookieJar
+    sessions.JAR_DIR.mkdir(mode=0o700)
+    cookie_path = sessions.jar_path("shop.example")
+    cookie_path.write_bytes(b"PLAIN:[]")
+    locked_jar = sessions.load_jar("shop.example")
+    assert locked_jar.locked
+    sessions.save_jar(locked_jar)
+    assert cookie_path.read_bytes() == b"PLAIN:[]"
+
+    jar = MozillaCookieJar(str(sessions.jar_path("shop.example")))
+    sessions.save_jar(jar)
+    assert cookie_path.read_bytes() == b"PLAIN:[]"
+
+
+def test_osv_missing_package_results_are_not_clean(monkeypatch):
+    import vulncheck
+
+    monkeypatch.setattr(vulncheck, "_post_json", lambda *_args, **_kwargs: {
+        "results": [{}]})
+    assert vulncheck.check_osv({"package": "1.0"}) == {
+        "_error": "invalid OSV vulnerability list"}
+
+    monkeypatch.setattr(vulncheck, "_post_json", lambda *_args, **_kwargs: {
+        "results": [{"vulns": []}]})
+    assert vulncheck.check_osv({"package": "1.0"}) == {"package": []}
+
+
+def test_legacy_osv_error_cache_cannot_be_reported_as_clean(tmp_path, monkeypatch):
+    import json
+    import vulncheck
+
+    cache = tmp_path / "vulncheck.json"
+    cache.write_text(json.dumps({"vulns": {"_error": "network failed"}, "total": 0}))
+    monkeypatch.setattr(vulncheck, "AUDIT_CACHE", cache)
+    report = vulncheck.cached_audit()
+    assert report["ok"] is False
+    assert report["errors"]["_error"] == "network failed"
 
 
 def test_clean_html_only_exposes_checked_image_proxy_urls():

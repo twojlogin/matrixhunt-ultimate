@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
     <script>try{var _l=localStorage.getItem('mh_lang');if(_l!=='pl'&&_l!=='en'){_l=(navigator.language||'en').toLowerCase().indexOf('pl')===0?'pl':'en';}document.documentElement.setAttribute('data-lang',_l);}catch(e){document.documentElement.setAttribute('data-lang','en');}</script>
-    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('mh_theme')==='night'||localStorage.getItem('mh_theme')==='day'?localStorage.getItem('mh_theme'):'night')}catch(e){document.documentElement.setAttribute('data-theme','night')}</script>
+    <script>try{var _t=localStorage.getItem('mh_theme');document.documentElement.setAttribute('data-theme',_t==='matrix'||_t==='night'||_t==='day'?_t:'night')}catch(e){document.documentElement.setAttribute('data-theme','night')}</script>
 <title>HARDWARE DIAGNOSTICS HUB</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -69,7 +69,7 @@ footer a:hover{color:var(--cyan);text-decoration:underline}
 .calibration-view{background:var(--card);border:1px solid var(--border);padding:8px;font-size:0.75em;max-height:150px;overflow-y:auto;white-space:pre-wrap;color:var(--green)}
 .drift-status{padding:4px 8px;border:1px solid var(--border);display:inline-block;margin-top:4px;font-size:0.85em}
 </style>
-    <link rel="stylesheet" href="/tools/theme.css">
+    <link rel="stylesheet" href="../tools/theme.css">
 </head>
 <body>
 <canvas id="matrix-bg"></canvas>
@@ -314,6 +314,22 @@ footer a:hover{color:var(--cyan);text-decoration:underline}
 
 <script>
 (function(){
+function escapeHtml(value){return String(value==null?'':value).replace(/[&<>"']/g,function(character){
+return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]})}
+if(location.protocol==='file:'){
+var launchNotice=document.createElement('div');
+launchNotice.setAttribute('role','alert');
+launchNotice.style.cssText='position:fixed;top:12px;left:12px;right:12px;z-index:10001;padding:12px 16px;border:2px solid #e8e8e8;background:#111;color:#fff;font: bold 14px/1.5 sans-serif;text-align:center';
+launchNotice.textContent='Tryb lokalnego pliku: nawigacja i linki są zablokowane. Uruchom MatrixHunt przez serwer aplikacji, aby korzystać bezpiecznie ze wszystkich funkcji.';
+document.body.appendChild(launchNotice);
+document.addEventListener('click',function(event){
+var link=event.target&&event.target.closest?event.target.closest('a[href]'):null;
+if(!link)return;
+event.preventDefault();
+event.stopImmediatePropagation();
+launchNotice.hidden=false;
+},true);
+}
 // Matrix rain
 var c=document.getElementById('matrix-bg'),ctx=c.getContext('2d');
 function resizeCanvas(){c.width=window.innerWidth;c.height=window.innerHeight}
@@ -536,7 +552,7 @@ document.getElementById('rr-start').disabled=false;this.disabled=true});
 ['Pixel Ratio',window.devicePixelRatio],
 ['Orientation',screen.orientation?screen.orientation.type:'N/A'],
 ['Fullscreen',document.fullscreenEnabled?'Supported':'Not supported']
-];info.forEach(function(r){di.innerHTML+='<div class="info-row"><span class="label">'+r[0]+'</span><span class="val">'+r[1]+'</span></div>'})})();
+];info.forEach(function(r){di.innerHTML+='<div class="info-row"><span class="label">'+escapeHtml(r[0])+'</span><span class="val">'+escapeHtml(r[1])+'</span></div>'})})();
 
 // ==================== SYSTEM ====================
 (function(){var si=document.getElementById('system-info');
@@ -571,7 +587,7 @@ info.push(['WebRTC',window.RTCPeerConnection?'Supported':'Not supported']);
 info.push(['Web Audio',window.AudioContext||window.webkitAudioContext?'Supported':'Not supported']);
 info.push(['CSS Grid',CSS.supports('display','grid')?'Supported':'Not supported']);
 info.push(['Flexbox',CSS.supports('display','flex')?'Supported':'Not supported']);
-info.forEach(function(r){si.innerHTML+='<div class="info-row"><span class="label">'+r[0]+'</span><span class="val">'+r[1]+'</span></div>'})})();
+info.forEach(function(r){si.innerHTML+='<div class="info-row"><span class="label">'+escapeHtml(r[0])+'</span><span class="val">'+escapeHtml(r[1])+'</span></div>'})})();
 
 // ==================== DRIVERS ====================
 (function(){var dc=document.getElementById('driver-cards');
@@ -585,17 +601,17 @@ var drivers=[
 {name:'Linux evdev / xpad',platform:'Linux',desc:'Linux uses evdev for gamepad input. xpad kernel module provides Xbox controller support. For PS controllers, use DS4drv or jstest-gui for testing. Most controllers work via xpad or hid-generic modules.',link:'https://github.com/xpadne/xpad-neo'},
 {name:'macOS MFi / Steam',platform:'macOS',desc:'MFi controllers (Made for iPhone/iPad/iPod) work on macOS Monterey+. PS4/PS5 and Xbox controllers pair via Bluetooth. Steam provides additional controller configuration on macOS.',link:'https://support.apple.com/en-us/102379'}
 ];
-drivers.forEach(function(d){dc.innerHTML+='<div class="driver-card"><div><span class="tag">'+d.platform+'</span></div><h4>'+d.name+'</h4><p>'+d.desc+'</p><a href="'+d.link+'" target="_blank" rel="noopener">View Details →</a></div>'})})();
+drivers.forEach(function(d){dc.innerHTML+='<div class="driver-card"><div><span class="tag">'+escapeHtml(d.platform)+'</span></div><h4>'+escapeHtml(d.name)+'</h4><p>'+escapeHtml(d.desc)+'</p><a href="'+escapeHtml(d.link)+'" target="_blank" rel="noopener">View Details →</a></div>'})})();
 
 // Gamepad polling — świadomie bez czekania na event: przeglądarka pokazuje
 // pad dopiero po naciśnięciu przycisku, więc pokazujemy stan i wykrywamy sami.
 setInterval(function(){var gp=getPad();if(gp){if(gp.id!==lastPadId){lastPadId=gp.id;padStatus('GAMEPAD: '+gp.id)}gamepadConnected=true;updateSticks(gp)}else if(gamepadConnected||lastPadId){gamepadConnected=false;lastPadId=null;padStatus('No gamepad detected — naciśnij dowolny przycisk na padzie. (Linux: sudo usermod -aG input $USER, potem wyloguj/zaloguj)')}},50);
 })();
 </script>
-    <script src="/tools/theme.js"></script>
-    <script src="/tools/api.js"></script>
-    <script src="/tools/lang.js"></script>
-    <script src="/tools/outbound.js"></script>
+    <script src="../tools/theme.js"></script>
+    <script src="../tools/api.js"></script>
+    <script src="../tools/lang.js"></script>
+    <script src="../tools/outbound.js"></script>
 
 </body>
 </html>

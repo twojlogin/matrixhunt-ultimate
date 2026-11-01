@@ -37,6 +37,10 @@ Logowanie Steam:
 steamcommunity.com           specs.openid.net
 ```
 
+Hosty docelowe nie są ograniczone do powyższej listy: użytkownik może wskazać
+adres przez `/api/clean`, `/api/linkcheck` lub własną listę filtrów, a także
+ustawić własny upstream proxy. To są jawne funkcje aplikacji, nie telemetria.
+
 **Nie ma w kodzie:** żadnego hosta analitycznego, telemetrycznego, żadnego
 LLM/AI API, żadnego webhooka, webhooks.discord, ngrok, requestbin, pipedream.
 Sprawdzone grepem po `google-analytics`, `googletagmanager`, `gtag`, `segment.io`,
@@ -46,41 +50,38 @@ czyli lista reguł blokujących, nie kod analityczny.
 
 ---
 
-## 2. CO Wychodzi Z TWOJEGO WEJŚCIA (proxy `/api/clean`)
+## 2. CO WYCHODZI Z TWOJEGO WEJŚCIA
 
-To jest **jedyny** endpoint, przez który Twoje dane mogą wyjść do sklepu.
+`POST /api/clean` może przekazać formularz logowania do wskazanej strony,
+łącznie z wpisanym hasłem; POST jest blokowany dla HTTP i przy przekierowaniu
+POST do HTTP. Aplikacja zapisuje z odpowiedzi wyłącznie `Set-Cookie`, nie
+treść formularza. Zapis cookies jest per host.
 
-- `backend/main.py:479` `_clean_sync` — pobiera stronę przez `requests`
-- `backend/main.py:483-486` — formularz POST jest przekazywany do sklepu
-  **w całości**, razem z wpisanym hasłem. To jest po to, żeby logowanie działało
-  przez viewer. Hasło leci do sklepu, do którego go wpisałeś, i nigdzie indziej.
-- `backend/main.py` `persist_from_requests` — z odpowiedzi zapisuje **tylko
-  `Set-Cookie`**, nigdy treść formularza. Sprawdzone w `backend/sessions.py:save_jar`.
-- Ciasteczka leżą w `backend/.cookies/` jako pliki per host, uprawnienia 0600.
+Są też żądania wychodzące wywoływane przez funkcje użytkownika: `/api/linkcheck`
+sprawdza podany URL, a pobranie własnej listy filtrów pobiera wskazany plik.
+Te funkcje wysyłają URL/żądanie pobrania, nie zawartość formularza. URL-e są
+sprawdzane przed połączeniem i przy przekierowaniach.
 
-Jeśli nie używasz proxy, ten kod nie ma jak z Twojego komputera wyjść — nic
-poza odpytywaniem sklepów po oferty.
+To nie jest pełny spis ruchu sieciowego ani dowód, że dane nie mogą trafić
+do hosta docelowego przez treść strony.
 
 ---
 
 ## 3. CO SIEDZI NA DYSKU
 
-| Plik | Rozmiar | Uprawnienia | Zawartość |
-|---|---|---|---|
-| `backend/.session_secret` | 216 B | 0600 | klucz podpisu ciasteczka sesji (zaszyfrowany lub `PLAIN:`, patrz niżej) |
-| `backend/.app_settings.json` | 191 B | 0600 | twoje ustawienia proxy/Tor/list filtrów |
-| `backend/.cookies/*.json` | — | 0600 | ciasteczka per witryna, tylko gdy się zalogujesz przez viewer |
-| `backend/matrixhunt.db` | — | 0640 | publiczne oferty, jawny tekst z założenia |
-| `backend/.filterlists/*.txt` | — | 0660 | EasyList, EasyPrivacy, polskie filtry, badware |
-| `backend/.kev.json` | 1,4 MB | 0600 | katalog CVE CISA KEV |
+| Plik | Zawartość |
+|---|---|
+| `backend/.session_secret` | klucz podpisu ciasteczka sesji |
+| `backend/.app_settings.json` | ustawienia proxy/Tor/list filtrów |
+| `backend/.cookies/*.json` | ciasteczka per witryna |
+| `backend/matrixhunt.db` | lokalne oferty i historia |
+| `backend/.filterlists/*.txt` | pobrane listy filtrów |
+| `backend/.kev.json` | katalog CVE CISA KEV |
 
-**Uwaga, którą sam znalazłem:** `.app_settings.json` leży jako `PLAIN:` — twoje
-ustawienia nie są zaszyfrowane, mimo że sejf istnieje i `.session_secret` jest
-zamknięty. Powód: przy pierwszym uruchomieniu zablokowany sejf zapisuje
-ustawienia jawnie, a mój strażnik pilnuje tego tylko dla ciasteczek, nie dla
-ustawień. Nie naprawiłem tego, bo to decyzja: przy zablokowanym sejfie ustawienia
-mają być nieczytelne (proxy przestaje działać) czy zapisywane jawnie (to co jest
-teraz).
+Bez skonfigurowanego weryfikatora vault pliki wrażliwe są jawne (`PLAIN:`)
+i mają uprawnienia właściciela. Po skonfigurowaniu vault jego blokada odmawia
+odczytu i zapisu, również dla starszych plików jawnych; odblokowanie migruje
+takie pliki do formatu szyfrowanego. Nie umieszczaj tych plików w repozytorium.
 
 ---
 
@@ -88,11 +89,10 @@ teraz).
 
 | Nie ma | Sprawdzone |
 |---|---|
-| wysyłania czegokolwiek na zewnątrz poza listą z punktu 1 | grep po webhook/ngrok/discord/telegram/beacon/telemetry |
-| logowania Twojej aktywności gdziekolwiek | brak kodu analitycznego |
-| wysyłania haseł poza sklep, do którego je wpisałeś | `main.py:479-486` |
+| wbudowanej analityki/telemetrii/webhooków | grep po analytics, webhook, ngrok, discord, telegram, beacon |
+| wysyłania haseł do serwera analitycznego | hasło z formularza idzie do wskazanego celu `/api/clean` |
 | automatycznych pobrań w tle poza odświeżeniem list filtrów | `_maybe_refresh_background` w `filterlists.py` |
-| testów, które odpalałyby się same w tle | `tests/` usunięte, kod ich nie dotyka |
+| automatycznego uruchamiania testów w tle | testy w `tests/` uruchamia się ręcznie |
 
 ---
 
@@ -103,6 +103,9 @@ Podaję, żeby ta lista nie udawała kompletności:
 - **Nie uruchamiałem aplikacji pod ruchem sieciowym i nie monitorowałem pakietów.**
   Analiza jest statyczna — czytanie kodu. Dynamicznie (wireshark/tcpdump) nie
   robiłem.
+- **Testy automatyczne nie są testem ruchu sieciowego ani dowodem braku błędów.**
+  Ostatni przebieg lokalny: `115 passed, 10 skipped`; nie testuje prawdziwego
+  logowania do sklepu ani wszystkich zachowań w przeglądarce.
 - **Nie sprawdzałem skryptów vendored** (`frontend/vendor/`): React 18.3.1,
   ReactDOM, Babel — pliki pobrane wcześniej, weryfikacja sumy kontrolnej
   nie była przeze mnie robiona.

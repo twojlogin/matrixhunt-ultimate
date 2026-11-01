@@ -126,7 +126,7 @@ def _session_secret():
             with os.fdopen(fd, "wb") as fh:
                 fh.write(vault.seal(secret.encode("utf-8")))
             os.replace(tmp, path)
-        except OSError:
+        except Exception:
             try:
                 os.unlink(tmp)
             except OSError:
@@ -142,7 +142,7 @@ def _session_secret():
 from starlette.middleware.sessions import SessionMiddleware
 app.add_middleware(SessionMiddleware, secret_key=_session_secret(),
                    session_cookie="mh_session", max_age=30 * 24 * 3600,
-                   same_site="lax", https_only=False)
+                   same_site="lax", https_only=_MH_PUBLIC)
 
 
 def _api_token():
@@ -441,11 +441,25 @@ _UNSAFE_FILE_EXT = (".exe", ".msi", ".bat", ".cmd", ".sh", ".scr", ".com",
 def _is_unsafe_file_url(url):
     """True, gdy URL wskazuje wprost plik wykonywalny / archiwum."""
     try:
-        from urllib.parse import urlsplit
-        path = urlsplit(url).path.lower()
+        from urllib.parse import unquote
+        path = unquote(urlsplit(url).path).lower()
     except Exception:
         return True
     return path.endswith(_UNSAFE_FILE_EXT)
+
+
+def _safe_offer_url(url):
+    try:
+        parts = urlsplit(url)
+    except (TypeError, ValueError):
+        return False
+    return bool(
+        parts.scheme.lower() in ("http", "https")
+        and parts.hostname
+        and parts.username is None
+        and parts.password is None
+        and not _is_unsafe_file_url(url)
+    )
 
 
 # Śmieciowe parametry, które mnożą "różne" URLe do tej samej strony.
@@ -464,8 +478,9 @@ def _canonical_url(url):
         host = (parts.hostname or "").lower()
         if not host:
             return url
-        netloc = host
-        if parts.port and parts.port not in (80, 443):
+        netloc = f"[{host}]" if ":" in host else host
+        default_port = {"http": 80, "https": 443}.get(parts.scheme.lower())
+        if parts.port and parts.port != default_port:
             netloc += f":{parts.port}"
         path = parts.path or ""
         if len(path) > 1 and path.endswith("/"):
@@ -560,11 +575,7 @@ def save_deals_to_db(deals, refresh_sources=()):
             # may reach the DB. Anything else (javascript:, data:, ...) would
             # flow into href/src attributes on the dashboard. Host check too:
             # "http://" passes a prefix test and is not a usable link.
-            if not deal.url.lower().startswith(("http://", "https://")):
-                continue
-            if not urlparse(deal.url).hostname:
-                continue
-            if _is_unsafe_file_url(deal.url):
+            if not _safe_offer_url(deal.url):
                 continue
             canon = _canonical_url(deal.url)
             seen.add(canon)
@@ -683,8 +694,10 @@ async def get_offers(source: str = None, search: str = None, limit: int = 1000,
             query = query.filter(Offer.title.ilike(f"%{pattern}%"))
         # LIMIT w SQL przed sklejaniem obcinałby losowy podzbiór bliźniaków.
         # Przy setkach wierszy taniej dobrać w pamięci i przyciąć po mergu.
-        offers = _merge_twins(
-            query.order_by(Offer.created_at.desc()).all())[:limit]
+        offers = _merge_twins([
+            offer for offer in query.order_by(Offer.created_at.desc()).all()
+            if _safe_offer_url(offer.url)
+        ])[:limit]
         return [
             {
                   "id": o.id, "title": o.title, "url": o.url, "price": o.price,
@@ -718,6 +731,8 @@ async def price_changes(limit: int = 30):
                 .join(Offer, Offer.id == PriceHistory.offer_id)
                 .order_by(PriceHistory.seen_at.desc())
                 .limit(limit).all())
+        rows = [(history, offer) for history, offer in rows
+                if _safe_offer_url(offer.url)]
         return {"count": len(rows), "changes": [
             {"offer_id": h.offer_id, "title": o.title, "source": o.source,
              "url": o.url, "price": o.price, "price_claim": h.price_claim,
@@ -882,9 +897,22 @@ def _clean_sync(url, method, headers, query_params, post_body, ephemeral=False):
             sep = "&" if "?" in target else "?"
             target = target + sep + urlencode(extra)
 
-    host = urlparse(target).hostname or ""
+    try:
+        host = urlparse(target).hostname or ""
+    except (TypeError, ValueError):
+        return JSONResponse({"error": "invalid URL"}, status_code=400)
+    if method == "POST" and urlparse(target).scheme != "https":
+        return JSONResponse(
+            {"error": "login forms require an HTTPS destination"},
+            status_code=403,
+        )
     from settings_store import read_settings, effective_proxies
     settings = read_settings()
+    if settings.get("settings_locked"):
+        return JSONResponse(
+            {"error": "settings unavailable; unlock the vault before proxying"},
+            status_code=423,
+        )
     if not settings.get("proxy_clean", True):
         return JSONResponse({"error": "cleaner disabled in settings"}, status_code=403)
     proxies = effective_proxies(settings)
@@ -908,6 +936,11 @@ def _clean_sync(url, method, headers, query_params, post_body, ephemeral=False):
             ok, reason = is_url_allowed(current, check_dns=check_dns)
             if not ok:
                 return JSONResponse({"error": f"blocked: {reason}"}, status_code=403)
+            if cur_method == "POST" and urlparse(current).scheme != "https":
+                return JSONResponse(
+                    {"error": "login forms require an HTTPS destination"},
+                    status_code=403,
+                )
             req_headers = {}
             if cur_body is not None and fwd_ctype:
                 req_headers["Content-Type"] = fwd_ctype
@@ -1292,8 +1325,15 @@ async def vault_unlock(request: Request):
         password = (await request.json()).get("password", "")
     except Exception:
         raise HTTPException(status_code=400, detail="JSON {password} required")
-    if vault.unlock(password):
-        return {"locked": False}
+    try:
+        if vault.unlock(password):
+            return {"locked": False}
+    except OSError as exc:
+        print(f"[vault] plaintext sealing failed: {exc}")
+        return JSONResponse(
+            {"error": "could not securely seal existing sensitive files"},
+            status_code=500,
+        )
     return JSONResponse({"error": "wrong password"}, status_code=403)
 
 
@@ -1404,6 +1444,9 @@ async def settings_set(request: Request):
     key, value = payload.get("key"), payload.get("value")
     try:
         return write_setting(key, value)
+    except PermissionError:
+        return JSONResponse({"error": "vault locked or settings unavailable"},
+                            status_code=423)
     except ValueError:
         return JSONResponse({"error": "invalid setting"}, status_code=400)
 
@@ -1531,6 +1574,7 @@ async def rss_feed():
         offers = session.query(Offer).filter(Offer.is_active == True,
                                              Offer.is_adult.isnot(True)
                                              ).order_by(Offer.created_at.desc()).limit(50).all()
+        offers = [offer for offer in offers if _safe_offer_url(offer.url)]
         # Titles/URLs come from third-party markup. Without escaping, a title
         # like "</title></item><item><title>x" forges feed entries and a
         # "<script>" title lands raw in reader DOMs (confirmed live).
@@ -1551,6 +1595,9 @@ async def rss_feed():
 
 @asynccontextmanager
 async def lifespan(app):
+    from vault import vault, seal_plaintext_leftovers
+    if not vault.locked:
+        seal_plaintext_leftovers(vault)
     # CORS must be pinned to the port we actually listen on, and it has to
     # happen for EVERY launch method. It used to run only under
     # `python main.py`, so `uvicorn main:app` - the documented FastAPI way -

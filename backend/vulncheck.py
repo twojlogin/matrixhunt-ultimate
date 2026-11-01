@@ -42,7 +42,7 @@ def _post_json(url, payload, timeout=30):
 
 
 def check_osv(packages):
-    """Batch OSV query. Returns {name: [vuln...]}. Network errors -> {}."""
+    """Batch OSV query. Incomplete responses are errors, never clean results."""
     names = list(packages)
     if not names:
         return {}
@@ -52,22 +52,67 @@ def check_osv(packages):
             for n in names]})
     except Exception as e:
         return {"_error": str(e)[:120]}
+    results = data.get("results") if isinstance(data, dict) else None
+    if not isinstance(results, list) or len(results) != len(names):
+        return {"_error": "incomplete OSV response"}
     out = {}
-    for name, res in zip(names, data.get("results", [])):
+    for name, res in zip(names, results):
+        if not isinstance(res, dict):
+            return {"_error": "invalid OSV package result"}
+        package_vulns = res.get("vulns")
+        if not isinstance(package_vulns, list):
+            return {"_error": "invalid OSV vulnerability list"}
         vulns = []
-        for v in res.get("vulns", []):
+        for v in package_vulns:
+            if not isinstance(v, dict):
+                return {"_error": "invalid OSV vulnerability entry"}
             sev = ""
-            for s in v.get("severity", []) or []:
-                if s.get("type", "").endswith("CVSS_V3"):
-                    sev = s.get("score", "")
+            severity = v.get("severity", [])
+            if not isinstance(severity, list):
+                return {"_error": "invalid OSV severity list"}
+            for s in severity:
+                if not isinstance(s, dict):
+                    return {"_error": "invalid OSV severity entry"}
+                severity_type = s.get("type", "")
+                if not isinstance(severity_type, str):
+                    return {"_error": "invalid OSV severity type"}
+                if severity_type.endswith("CVSS_V3"):
+                    score = s.get("score", "")
+                    if not isinstance(score, str):
+                        return {"_error": "invalid OSV severity score"}
+                    sev = score
                     break
-            vulns.append({"id": v.get("id"), "summary": (v.get("summary") or "")[:200],
+            summary = v.get("summary") or ""
+            details = v.get("details") or ""
+            affected = v.get("affected", [])
+            if (not isinstance(summary, str) or not isinstance(details, str)
+                    or not isinstance(affected, list)):
+                return {"_error": "invalid OSV vulnerability fields"}
+            fixed_versions = []
+            for affected_entry in affected:
+                if not isinstance(affected_entry, dict):
+                    return {"_error": "invalid OSV affected package"}
+                ranges = affected_entry.get("ranges", [])
+                if not isinstance(ranges, list):
+                    return {"_error": "invalid OSV ranges"}
+                for version_range in ranges:
+                    if not isinstance(version_range, dict):
+                        return {"_error": "invalid OSV version range"}
+                    events = version_range.get("events", [])
+                    if not isinstance(events, list):
+                        return {"_error": "invalid OSV version events"}
+                    for event in events:
+                        if not isinstance(event, dict):
+                            return {"_error": "invalid OSV version event"}
+                        fixed = event.get("fixed")
+                        if fixed is not None:
+                            if not isinstance(fixed, str):
+                                return {"_error": "invalid OSV fixed version"}
+                            fixed_versions.append(fixed)
+            vulns.append({"id": v.get("id"), "summary": summary[:200],
                           "severity": sev,
-                          "fixed": ",".join(
-                              e.get("fixed", "") for e in
-                              (v.get("affected") or [{}])[0].get("ranges", [{}])[0].get("events", [])
-                              if e.get("fixed")) or "see advisory",
-                          "details": (v.get("details") or "")[:400]})
+                          "fixed": ",".join(fixed_versions) or "see advisory",
+                          "details": details[:400]})
         out[name] = vulns
     return out
 
@@ -121,7 +166,7 @@ def run_audit():
     cache a failed run as if it were a clean bill of health.
     """
     pkgs = installed_packages()
-    osv = check_osv(pkgs)
+    osv = check_osv(pkgs) if pkgs else {"_error": "no installed packages detected"}
     errors = {k: v for k, v in osv.items() if k.startswith("_")}
     total = sum(len(v) for k, v in osv.items() if not k.startswith("_"))
     ok = not errors
@@ -144,6 +189,23 @@ def cached_audit():
         # No cache at all: that is "never audited", not "0 vulnerabilities".
         return {"checked_at": None, "packages": {}, "vulns": {}, "total": 0,
                 "ok": False, "errors": {"_cache": "no audit has ever been run"}}
-    report.setdefault("ok", True)
-    report.setdefault("errors", {})
+    if not isinstance(report, dict):
+        return {"checked_at": None, "packages": {}, "vulns": {}, "total": 0,
+                "ok": False, "errors": {"_cache": "invalid audit cache"}}
+    errors = report.get("errors", {})
+    if not isinstance(errors, dict):
+        errors = {"_cache": "invalid audit errors"}
+    report["errors"] = errors
+    vulns = report.get("vulns")
+    if not isinstance(vulns, dict):
+        report["ok"] = False
+        report["errors"]["_cache"] = "invalid vulnerability results"
+    elif any(key.startswith("_") for key in vulns):
+        report["ok"] = False
+        report["errors"].update({key: value for key, value in vulns.items()
+                                 if key.startswith("_")})
+    elif report["errors"]:
+        report["ok"] = False
+    else:
+        report.setdefault("ok", True)
     return report

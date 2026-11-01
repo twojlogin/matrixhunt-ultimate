@@ -119,6 +119,7 @@ function App() {
   const [cveItems, setCveItems] = useState(null);
   const [vulnInfo, setVulnInfo] = useState(null);
   const [vulnChecking, setVulnChecking] = useState(false);
+  const [dataError, setDataError] = useState(false);
   const searchRef = useRef(null);
 
   // The shared theme controller owns [data-theme]; this only mirrors it
@@ -224,24 +225,27 @@ function App() {
     try {
       // Treści 18+ schodzą z API tylko po odblokowaniu bramki wieku.
       const url = nsfwMode ? '/api/offers?nsfw=1' : '/api/offers';
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setOffers(Array.isArray(data) ? data : data.offers || []);
+      const [offersRes, statsRes] = await Promise.all([fetch(url), fetch('/api/stats')]);
+      if (!offersRes.ok || !statsRes.ok) {
+        throw new Error(`offers=${offersRes.status}, stats=${statsRes.status}`);
       }
-    } catch (e) {
-      console.error('Fetch error:', e);
+      const [offersData, statsData] = await Promise.all([offersRes.json(), statsRes.json()]);
+      const nextOffers = Array.isArray(offersData) ? offersData : offersData && offersData.offers;
+      if (!Array.isArray(nextOffers) || !statsData || typeof statsData !== 'object' || Array.isArray(statsData)) {
+        throw new Error('Invalid response from offers or stats API');
+      }
+      setOffers(nextOffers);
+      setStats(statsData);
+      setDataError(false);
+      showToast('DATA SYNCHRONIZED');
+    } catch (error) {
+      console.error('Data sync failed:', error);
+      setDataError(true);
+      showToast(lang === 'pl' ? 'BŁĄD ŁADOWANIA DANYCH' : 'DATA LOAD FAILED');
+    } finally {
+      setLoading(false);
     }
-    try {
-      const res = await fetch('/api/stats');
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-      }
-    } catch (e) {}
-    setLoading(false);
-    showToast('DATA SYNCHRONIZED');
-  }, [showToast, nsfwMode]);
+  }, [showToast, nsfwMode, lang]);
   const triggerScrape = useCallback(async () => {
     setLoading(true);
     showToast('INITIATING SCAN...');
@@ -592,7 +596,7 @@ function App() {
       padding: '40px',
       opacity: 0.5
     }
-  }, loading ? T.loading : T.no_offers), filtered.map((offer, i) => {
+  },   loading ? T.loading : dataError ? T.fetch_failed : T.no_offers), filtered.map((offer, i) => {
     const id = offer.id || offer.title || i;
     const isFav = favorites.includes(id);
     // Cena bierze sie wylacznie z price_claim, ktore ma

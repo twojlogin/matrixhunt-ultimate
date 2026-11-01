@@ -2,7 +2,7 @@
  * Network-first for API calls and navigation so the dashboard never serves
  * stale offers, cache-first for static assets which are served from disk.
  */
-const CACHE = 'matrixhunt-v4';
+const CACHE = 'matrixhunt-v5';
 const SHELL = [
   '/',
   '/static/index.html',

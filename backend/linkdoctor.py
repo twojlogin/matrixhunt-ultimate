@@ -10,7 +10,7 @@ zero telemetrii. Kazde wywolanie sieci jest opt-in (uzytkownik pyta o link).
 """
 import datetime as _dt
 import re
-from urllib.parse import urljoin, urlparse
+from urllib.parse import unquote, urljoin, urlparse
 
 from scrapers.base import DANGEROUS_EXT
 
@@ -56,7 +56,7 @@ def is_shortener(host):
 
 def _dangerous_ext(url):
     """Ostatni segment sciezki z rozszerzeniem wykonawczym."""
-    path = urlparse(url).path or ""
+    path = unquote(urlparse(url).path or "")
     last = path.rsplit("/", 1)[-1].lower()
     if "." not in last:
         return None
@@ -81,32 +81,29 @@ def _resolve_redirects(url, max_hops=MAX_HOPS):
     GET w trybie stream, cialo od razu zamykane - nie czytamy tresci.
     Zwraca (final_url, hops, error|None).
     """
-    import requests
-    from cleaner import is_url_allowed
+    from cleaner import is_url_allowed, new_safe_session
     cur = url
-    for hop in range(max_hops + 1):
-        ok, why = is_url_allowed(cur)
-        if not ok:
-            return cur, hop, f"zablokowane przez bramke SSRF: {why}"
-        r = None
-        try:
-            r = requests.get(cur, timeout=10, allow_redirects=False, stream=True,
-                             headers={"User-Agent": UA})
-            if r.status_code in (301, 302, 303, 307, 308):
-                loc = r.headers.get("Location")
-                if not loc:
-                    return cur, hop, "przekierowanie bez celu"
-                cur = urljoin(cur, loc)
-                continue
-            return cur, hop, None
-        except Exception as e:
-            return cur, hop, f"blad sieci: {type(e).__name__}"
-        finally:
-            if r is not None:
-                try:
+    with new_safe_session() as session:
+        for hop in range(max_hops + 1):
+            ok, why = is_url_allowed(cur)
+            if not ok:
+                return cur, hop, f"zablokowane przez bramke SSRF: {why}"
+            r = None
+            try:
+                r = session.get(cur, timeout=10, allow_redirects=False, stream=True,
+                                headers={"User-Agent": UA})
+                if r.status_code in (301, 302, 303, 307, 308):
+                    loc = r.headers.get("Location")
+                    if not loc:
+                        return cur, hop, "przekierowanie bez celu"
+                    cur = urljoin(cur, loc)
+                    continue
+                return cur, hop, None
+            except Exception as e:
+                return cur, hop, f"blad sieci: {type(e).__name__}"
+            finally:
+                if r is not None:
                     r.close()
-                except Exception:
-                    pass
     return cur, max_hops, "za duzo przekierowan"
 
 
@@ -172,7 +169,7 @@ def check_url(url):
     final_url, hops, err = _resolve_redirects(url)
     checked.append("redirecty")
     host = _host(final_url) or host0
-    if err and not err.startswith("za duzo"):
+    if err:
         add("ostrzez", "redirect", err)
     if hops:
         add("info", "redirect", f"rozwinięto {hops} przekierowanie(a) do: {host}")

@@ -9,6 +9,14 @@ if [ -z "$A" ]; then
   echo "użycie: $0 <katalog-docelowy>  (albo MIRROR_DIR=<katalog-docelowy> $0)" >&2
   exit 2
 fi
+B="$(realpath "$B")"
+A="$(realpath -m "$A")"
+HOME_DIR="$(realpath "$HOME")"
+if [[ "$A" == "/" || "$A" == "$HOME_DIR" || "$A" == "$B" ||
+      "$A" == "$B/"* || "$B" == "$A/"* ]]; then
+  echo "błędny cel: odmawiam synchronizacji do katalogu głównego, domowego, źródła lub jego rodzica" >&2
+  exit 2
+fi
 # _testy_usuniete/ holds the only copy of the removed test file. A previous
 # --delete run emptied it because the directory was not excluded, so the
 # exclusion is mandatory, not optional.

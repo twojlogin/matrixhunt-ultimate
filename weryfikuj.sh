@@ -2,9 +2,14 @@
 # Przenośny skrypt weryfikacyjny. Uruchom ./weryfikuj.sh
 # Bez twardych ścieżek /home/... — działa z dowolnego klona na dowolnym koncie.
 set -u
+umask 077
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 RUN_DIR="${MH_RUN_DIR:-${TMPDIR:-/tmp}/matrixhunt-${USER:-u}}"
 mkdir -p "$RUN_DIR"
+chmod 700 "$RUN_DIR" || {
+  echo "Nie można zabezpieczyć katalogu roboczego: $RUN_DIR" >&2
+  exit 1
+}
 LOG="$RUN_DIR/vp.log"
 PORT_FILE="$RUN_DIR/port.txt"
 PID_FILE="$RUN_DIR/vp.pid"
@@ -13,7 +18,7 @@ PID_FILE="$RUN_DIR/vp.pid"
 # wystartowaną przez ten skrypt (PID zapisany w $RUN_DIR/vp.pid).
 if [ -f "$PID_FILE" ]; then
   OLD_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
-  if [ -n "${OLD_PID:-}" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+  if [[ "${OLD_PID:-}" =~ ^[1-9][0-9]*$ ]] && kill -0 "$OLD_PID" 2>/dev/null; then
     kill "$OLD_PID" 2>/dev/null || true
     sleep 2
   fi

@@ -18,6 +18,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import tempfile
 
 HERE = Path(__file__).parent
 VERIFIER_PATH = HERE / ".vault_verifier"
@@ -35,7 +36,7 @@ def _fernet(password, salt):
     ran on every settings read, every cookie-jar write and every proxied page
     load - read_settings() alone was called from four places per request.
     The salt changes when the password changes, so it belongs in the key."""
-    key = (password, salt)
+    key = hashlib.sha256(password.encode("utf-8") + b"\0" + salt).digest()
     hit = _fernet_cache.get(key)
     if hit is not None:
         return hit
@@ -58,7 +59,8 @@ class Vault:
         self._password = None
         env = os.environ.get("MH_VAULT_PASSWORD")
         if env:
-            self._password = env
+            if not self.unlock(env):
+                raise RuntimeError("MH_VAULT_PASSWORD does not match the vault verifier")
 
     @property
     def locked(self):
@@ -78,24 +80,47 @@ class Vault:
         else:
             salt = os.urandom(_salt_len)
             token = _fernet(password, salt).encrypt(b"matrixhunt-vault")
-            VERIFIER_PATH.write_text(json.dumps({
+            verifier = json.dumps({
                 "salt": base64.b64encode(salt).decode(),
-                "token": token.decode()}))
+                "token": token.decode()}).encode("utf-8")
+            fd, tmp = tempfile.mkstemp(
+                dir=str(VERIFIER_PATH.parent), prefix=f".{VERIFIER_PATH.name}.")
             try:
-                VERIFIER_PATH.chmod(0o600)
-            except OSError:
-                pass
+                os.fchmod(fd, 0o600)
+                with os.fdopen(fd, "wb") as stream:
+                    fd = -1
+                    stream.write(verifier)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                os.replace(tmp, VERIFIER_PATH)
+            except Exception:
+                if fd >= 0:
+                    os.close(fd)
+                try:
+                    os.unlink(tmp)
+                except FileNotFoundError:
+                    pass
+                raise
+        previous_password = self._password
+        if previous_password != password:
+            _fernet_cache.clear()
         self._password = password
-        # Seal any plaintext leftovers from before the first unlock.
-        seal_plaintext_leftovers(self)
+        try:
+            seal_plaintext_leftovers(self)
+        except Exception:
+            self._password = previous_password
+            raise
         return True
 
     def lock(self):
         self._password = None
+        _fernet_cache.clear()
 
     def seal(self, data: bytes) -> bytes:
-        """Encrypt bytes for disk. Plain JSON envelope when locked."""
+        """Encrypt for disk; plaintext is allowed only before vault setup."""
         if self.locked:
+            if VERIFIER_PATH.exists():
+                raise ValueError("vault locked - unlock before writing sensitive data")
             return b"PLAIN:" + data
         salt = os.urandom(_salt_len)
         token = _fernet(self._password, salt).encrypt(data)
@@ -108,6 +133,8 @@ class Vault:
             _, salt_b, token = blob.split(b":", 2)
             salt = base64.b64decode(salt_b)
             return _fernet(self._password, salt).decrypt(token)
+        if self.locked and VERIFIER_PATH.exists():
+            raise ValueError("vault locked - unlock before reading plaintext data")
         if blob.startswith(b"PLAIN:"):
             return blob[len(b"PLAIN:"):]
         # Legacy files written before the vault existed.
@@ -125,17 +152,27 @@ def seal_plaintext_leftovers(v):
         if extra.exists():
             targets.append(extra)
     for path in targets:
-        try:
-            raw = path.read_bytes()
-            if raw.startswith(b"VAULT1:"):
-                continue
-            path.write_bytes(v.seal(raw if raw.startswith(b"PLAIN:") else b"PLAIN:" + raw))
-            try:
-                path.chmod(0o600)
-            except OSError:
-                pass
-        except OSError:
+        raw = path.read_bytes()
+        if raw.startswith(b"VAULT1:"):
             continue
+        sealed = v.seal(raw if raw.startswith(b"PLAIN:") else b"PLAIN:" + raw)
+        fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.")
+        try:
+            os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "wb") as stream:
+                fd = -1
+                stream.write(sealed)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(tmp, path)
+        except Exception:
+            if fd >= 0:
+                os.close(fd)
+            try:
+                os.unlink(tmp)
+            except FileNotFoundError:
+                pass
+            raise
 
 
 def cookie_to_dict(c):

@@ -13,9 +13,6 @@ def _appid(url: str):
     return None
 
 
-from .base import BaseScraper, Deal
-
-
 class SteamScraper(BaseScraper):
     def __init__(self, session=None):
         super().__init__("Steam", "https://store.steampowered.com", session)
@@ -66,6 +63,8 @@ class SteamScraper(BaseScraper):
                                 return None
                             if d.get("type") != "game":
                                 return None  # DLC, demo, mod — not a game offer
+                            if d.get("is_free") is not True:
+                                return None  # search filters are not proof of F2P
                             po = d.get("price_overview") or {}
                             claim = po.get("final_formatted") or "Free"
                             return Deal(
@@ -81,21 +80,6 @@ class SteamScraper(BaseScraper):
                             )
                     wyniki = await asyncio.gather(*(one(t, h) for t, h in kandydaci))
                     deals = [d for d in wyniki if d]
-                    for row in soup.select("a.search_result_row")[:20]:
-                        title_el = row.select_one(".title")
-                        if title_el:
-                            title = title_el.get_text(strip=True)
-                            if self.is_garbage(title):
-                                continue
-                            href = row.get("href", "").split("?")[0]
-                            deals.append(Deal(
-                                title=self.clean_title(title),
-                                url=href,
-                                **self.listed_as_free(),
-                                category="games",
-                                source="Steam",
-                                requires_login=True,
-                            ))
         except Exception as e:
             print(f"[Steam] Error: {e}")
         return [d for d in deals if self.is_valid(d)]

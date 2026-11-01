@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer">
     <script>try{var _l=localStorage.getItem('mh_lang');if(_l!=='pl'&&_l!=='en'){_l=(navigator.language||'en').toLowerCase().indexOf('pl')===0?'pl':'en';}document.documentElement.setAttribute('data-lang',_l);}catch(e){document.documentElement.setAttribute('data-lang','en');}</script>
 <title>MATRIXHUNT // VIEWER</title>
-    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('mh_theme')==='night'||localStorage.getItem('mh_theme')==='day'?localStorage.getItem('mh_theme'):'night')}catch(e){document.documentElement.setAttribute('data-theme','night')}</script>
+    <script>try{var _t=localStorage.getItem('mh_theme');document.documentElement.setAttribute('data-theme',_t==='matrix'||_t==='night'||_t==='day'?_t:'night')}catch(e){document.documentElement.setAttribute('data-theme','night')}</script>
     <style>
         :root {
             --green: #0f0;
@@ -316,6 +316,26 @@
                         .catch(function () { banner.textContent = 'LINK DOCTOR: nie udało się sprawdzić'; });
                 } catch (e) {}
                 frame.addEventListener('load', function () {
+                    try {
+                        var doc = frame.contentDocument;
+                        if (doc) doc.addEventListener('click', function (ev) {
+                            var target = ev.target && ev.target.nodeType === 1
+                                ? ev.target : ev.target && ev.target.parentElement;
+                            var link = target && target.closest
+                                ? target.closest('a[href]') : null;
+                            if (!link) return;
+                            var destination;
+                            try { destination = new URL(link.href, doc.location.href); }
+                            catch (e) { return; }
+                            if (destination.protocol !== 'http:' &&
+                                destination.protocol !== 'https:') return;
+                            if (destination.origin === window.location.origin) return;
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            window.location.href = '/view?url=' +
+                                encodeURIComponent(destination.href);
+                        }, true);
+                    } catch (e) {}
                     // The proxy answers JSON errors with 4xx/5xx; an empty
                     // document here means the clean failed - offer the raw link.
                     try {

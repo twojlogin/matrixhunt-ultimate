@@ -29,7 +29,7 @@ python3 -m venv .venv
 cd backend && ../.venv/bin/python main.py
 ```
 
-Albo, jeśli masz zainstalowany arek-bootstrap (z ~/Projekty/Inne/arek-bootstrap):
+Albo, jeśli masz zainstalowany `arek-bootstrap`:
 
 ```bash
 arek-bootstrap --install   # wykryje Python, utworzy .venv, zainstaluje deps
@@ -106,6 +106,7 @@ zero pomiarów `api:*` poza scraperami API.
 |---|---|
 | CSRF / obce originy | token `X-MH-Token` + strażnik `_api_guard` (tylko loopback) |
 | SSRF przez proxy | bramka `is_url_allowed` na każdym hopy (bloki: intranet, metadata, `file:`, porty) |
+| hasło formularza przez proxy | POST formularza jest dozwolony wyłącznie do HTTPS; przekierowanie POST do HTTP jest blokowane |
 | XSS z obcych stron | sanacja HTML (`clean_html`), resourcy tylko z allowlist; schematy (`javascript:`/`data:`) zdejmowane **po normalizacji** znaków sterujących (obfuskacja tab/newline) |
 | Polygloty w obrazkach | `validate_image` po magic bytes + `nosniff` |
 | Wrogie URL-e w bazie | tylko `http(s)` z hostem, zero plików `.exe/.zip/.rar` (zapora na wejściu) |
@@ -183,9 +184,14 @@ Runtime (gitignorowane, nie w repo): `.venv/`, `matrixhunt.db*`, `.cookies/`,
 - itch.io zaparkowany (parser kłamał `price="Free"`).
 - DLsite odrzucony jako źródło: sklep w większości 18+, brak publicznego API, gry jako `.exe`.
 - `seed_offers.json`: 36 zweryfikowanych tytułów F2P (Steam API), ładuje się przy pustej bazie.
-- `.app_settings.json` jawny (`PLAIN:`), gdy vault zablokowany.
+- Bez skonfigurowanego vault pliki ustawień i cookies są jawne (`PLAIN:`), ale
+  mają uprawnienia właściciela. Po skonfigurowaniu vault blokada uniemożliwia
+  odczyt i zapis, także starych plików jawnych; po odblokowaniu starsze pliki
+  są przenoszone do formatu szyfrowanego. Proxy nie wraca po cichu do ruchu
+  bezpośredniego.
 - Proxy nieprzetestowane z prawdziwym logowaniem do sklepu; pad bez testów na sprzęcie.
-- `vault.unlock()` bez blokady, `write_bytes` nieatomowy (do poprawy).
+- Odblokowanie vault i zapis wrażliwych plików używają atomowej podmiany;
+  nieudane szyfrowanie przerywa odblokowanie.
 - Historia: proxy zwracało kiedyś 403 na 3 sklepach (niezbadane, do powtórzenia).
 
 ## 10a. Self-hosting (opcjonalne)

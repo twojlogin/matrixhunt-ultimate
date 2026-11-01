@@ -388,6 +388,16 @@ class HardwareDetector {
 /**
  * Render hardware summary to a DOM element
  */
+function escapeHardwareText(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
+}
+
 function renderHardwareSummary(hw, containerId) {
     const el = document.getElementById(containerId);
     if (!el) return;
@@ -415,21 +425,22 @@ function renderHardwareSummary(hw, containerId) {
     let controllerHTML = '<span style="color:var(--bad);">None detected</span>';
     if (hw.controller.connected) {
         const names = hw.controller.controllers.map(c => c.type).join(', ');
-        controllerHTML = '<span style="color:var(--ok);">' + hw.controller.count + ' connected (' + names + ')</span>';
+        controllerHTML = '<span style="color:var(--ok);">' + escapeHardwareText(hw.controller.count) +
+            ' connected (' + escapeHardwareText(names) + ')</span>';
     }
 
     el.innerHTML =
         '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.85em;">' +
-            '<div><span style="opacity:0.5;">GPU:</span> <span style="color:' + gpuColor + ';">' + hw.gpu.renderer + '</span> <span style="opacity:0.5;">[score: ' + hw.gpu.score + ']</span>' + gpuNote + '</div>' +
-            '<div><span style="opacity:0.5;">CPU:</span> <span style="color:' + cpuColor + ';">' + (hw.cpu.cores > 0 ? hw.cpu.cores + ' cores' : 'Unknown') + '</span> <span style="opacity:0.5;">[' + hw.cpu.tier + ']</span></div>' +
+            '<div><span style="opacity:0.5;">GPU:</span> <span style="color:' + gpuColor + ';">' + escapeHardwareText(hw.gpu.renderer) + '</span> <span style="opacity:0.5;">[score: ' + escapeHardwareText(hw.gpu.score) + ']</span>' + gpuNote + '</div>' +
+            '<div><span style="opacity:0.5;">CPU:</span> <span style="color:' + cpuColor + ';">' + escapeHardwareText(hw.cpu.cores > 0 ? hw.cpu.cores + ' cores' : 'Unknown') + '</span> <span style="opacity:0.5;">[' + escapeHardwareText(hw.cpu.tier) + ']</span></div>' +
             '<div><span style="opacity:0.5;">RAM:</span> ' + ramHTML + '</div>' +
-            '<div><span style="opacity:0.5;">Display:</span> <span style="color:var(--green);">' + hw.display.width + 'x' + hw.display.height + ' @ ' + hw.display.pixelRatio + 'x DPR</span> <span style="opacity:0.5;">[' + (hw.display.estimatedHz ? hw.display.estimatedHz + ' Hz (zmierzone)' : 'Hz niezmierzone') + ']</span></div>' +
+            '<div><span style="opacity:0.5;">Display:</span> <span style="color:var(--green);">' + escapeHardwareText(hw.display.width) + 'x' + escapeHardwareText(hw.display.height) + ' @ ' + escapeHardwareText(hw.display.pixelRatio) + 'x DPR</span> <span style="opacity:0.5;">[' + (hw.display.estimatedHz ? escapeHardwareText(hw.display.estimatedHz) + ' Hz (zmierzone)' : 'Hz niezmierzone') + ']</span></div>' +
             '<div><span style="opacity:0.5;">Controller:</span> ' + controllerHTML + '</div>' +
             '<div><span style="opacity:0.5;">Vulkan/WebGPU:</span> <span style="color:' + vulkanColor + ';">' + vulkanText + '</span>' + (hw.vulkan.unknown ? ' <span style="opacity:0.5;">[przeglądarka nie wykrywa — nie mylić z brakiem]</span>' : '') + '</div>' +
-            '<div><span style="opacity:0.5;">Browser:</span> <span style="color:var(--green);">' + hw.browser.name + ' ' + hw.browser.version + '</span></div>' +
-            '<div><span style="opacity:0.5;">OS:</span> <span style="color:var(--green);">' + hw.os.name + ' ' + hw.os.arch + '</span></div>' +
+            '<div><span style="opacity:0.5;">Browser:</span> <span style="color:var(--green);">' + escapeHardwareText(hw.browser.name) + ' ' + escapeHardwareText(hw.browser.version) + '</span></div>' +
+            '<div><span style="opacity:0.5;">OS:</span> <span style="color:var(--green);">' + escapeHardwareText(hw.os.name) + ' ' + escapeHardwareText(hw.os.arch) + '</span></div>' +
             (hw.battery.available ?
-                '<div><span style="opacity:0.5;">Battery:</span> <span style="color:' + (hw.battery.charging ? 'var(--ok)' : 'var(--warn)') + ';">' + hw.battery.level + '% ' + (hw.battery.charging ? '(charging)' : '') + '</span></div>' : '') +
+                '<div><span style="opacity:0.5;">Battery:</span> <span style="color:' + (hw.battery.charging ? 'var(--ok)' : 'var(--warn)') + ';">' + escapeHardwareText(hw.battery.level) + '% ' + (hw.battery.charging ? '(charging)' : '') + '</span></div>' : '') +
         '</div>';
 }
 

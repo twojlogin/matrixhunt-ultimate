@@ -25,6 +25,9 @@ _TAGCH = "".join(chr(c) for c in range(0xE0000, 0xE0080))
 _STRIP = "".join(_INVISIBLE) + "".join(_BIDI) + _TAGCH
 
 _CTRL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+_HIDDEN_STYLE = re.compile(
+    r"(?:^|;)\s*(?:display\s*:\s*none|visibility\s*:\s*hidden)"
+    r"\s*(?:!\s*important\s*)?(?:;|$)", re.I)
 
 _INJECTION = (
     ("ignore-prev", re.compile(
@@ -98,17 +101,16 @@ def strip_hidden_html(html):
     """
     try:
         from bs4 import BeautifulSoup
-    except Exception:
-        clean, findings = sanitize_text(re.sub(r"<!--.*?-->", " ", html, flags=re.S))
-        return clean, findings
+    except ImportError as exc:
+        raise RuntimeError("BeautifulSoup is required to inspect untrusted HTML") from exc
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "noscript", "template"]):
         tag.decompose()
     hidden = []
     for el in soup.find_all(True):
-        st = (el.get("style") or "").replace(" ", "").lower()
-        if ("display:none" in st or "visibility:hidden" in st
-                or el.has_attr("hidden") or el.get("aria-hidden") == "true"):
+        st = el.get("style") or ""
+        if (_HIDDEN_STYLE.search(st) or el.has_attr("hidden")
+                or (el.get("aria-hidden") or "").strip().lower() == "true"):
             hidden.append(el.get_text(" ", strip=True)[:200])
             el.decompose()
     text = soup.get_text(" ", strip=True)

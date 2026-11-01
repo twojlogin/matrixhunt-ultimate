@@ -301,15 +301,18 @@ class BaseScraper(ABC):
         # Scrapers parse hostile third-party markup. A stored javascript: or
         # data: URL would execute from dashboard href/src attributes, and
         # React turns it into a full render crash (app-wide DoS).
-        low = deal.url.lower()
-        if not low.startswith(("http://", "https://")):
-            return False
         # A prefix test is not a URL parse: "http://", "https://#" and
         # "https://." all pass it, and a hostless link then lands in the DB
-        # where new URL() throws and the row is misrouted. Require a host.
+        # where new URL() throws and the row is misrouted. Reject URL userinfo
+        # too: it can disguise the actual destination in a displayed link.
         from urllib.parse import urlparse
-        host = urlparse(deal.url).hostname
-        if not host or not host.strip("."):
+        try:
+            parts = urlparse(deal.url)
+        except (TypeError, ValueError):
+            return False
+        if (parts.scheme.lower() not in ("http", "https")
+                or not parts.hostname or not parts.hostname.strip(".")
+                or parts.username is not None or parts.password is not None):
             return False
         return self.is_safe_url(deal.url)
 

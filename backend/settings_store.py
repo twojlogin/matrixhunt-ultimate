@@ -5,7 +5,9 @@ proxy URL could embed credentials). Only allowlisted keys are accepted and
 upstream URLs are re-validated on every read.
 """
 import json
+import os
 from pathlib import Path
+import tempfile
 from urllib.parse import urlparse
 
 STORE = Path(__file__).parent / ".app_settings.json"
@@ -45,39 +47,39 @@ _LOCK_WARNED = False
 
 
 def read_settings():
+    global _LOCK_WARNED
     from vault import vault
     data = dict(DEFAULTS)
     locked = False
     try:
         if STORE.exists():
             raw = json.loads(vault.unseal(STORE.read_bytes()).decode("utf-8"))
-            if isinstance(raw, dict):
-                for key in DEFAULTS:
-                    if key in raw:
-                        data[key] = raw[key]
-    except ValueError:
-        # Vault locked over a sealed settings file. Falling back to DEFAULTS
-        # silently set tor:false, so the user's traffic went DIRECT while the
-        # UI still showed the proxy toggle on. Say so instead - but only once
-        # per process, since read_settings() runs on every /api/settings hit
-        # and the warning used to flood the log.
-        locked = True
-        global _LOCK_WARNED      # without this, =True created a local and the
-        if not _LOCK_WARNED:     # guard never stuck, so the warning repeated
-            _LOCK_WARNED = True  # on every single call
-            print("[settings] vault locked - using defaults, "
-                  "tor/proxy settings NOT applied until unlock "
-                  "(warning shown once per session)")
+            if not isinstance(raw, dict):
+                raise ValueError("settings must be an object")
+            for key in DEFAULTS:
+                if key in raw:
+                    data[key] = raw[key]
     except Exception as e:
-        print(f"[settings] unreadable ({type(e).__name__}: {e}) - using defaults")
+        # A corrupt or locked settings file must not silently route traffic
+        # directly or be overwritten by a subsequent setting change.
+        locked = True
+        if not _LOCK_WARNED:
+            _LOCK_WARNED = True
+            print(f"[settings] unavailable ({type(e).__name__}: {e}); "
+                  "proxy traffic and settings writes are blocked")
     if locked:
         data["settings_locked"] = True
     data["proxy_clean"] = bool(data.get("proxy_clean", True))
     data["tor"] = bool(data.get("tor", False))
     try:
         data["upstream_proxy"] = _validate_upstream(data.get("upstream_proxy", ""))
-    except ValueError:
+    except ValueError as e:
         data["upstream_proxy"] = ""
+        data["settings_locked"] = True
+        if not _LOCK_WARNED:
+            _LOCK_WARNED = True
+            print(f"[settings] invalid upstream proxy ({e}); "
+                  "proxy traffic and settings writes are blocked")
     data["filter_lists"] = _validate_lists(data.get("filter_lists"))
     data["filters_enabled"] = bool(data.get("filters_enabled", True))
     data["custom_lists"] = _validate_custom_lists(data.get("custom_lists", []))
@@ -162,13 +164,28 @@ def write_setting(key, value):
     elif key == "custom_rules":
         value = _validate_custom(value)
     data = read_settings()
+    from vault import VERIFIER_PATH, vault
+    if data.get("settings_locked") or (vault.locked and VERIFIER_PATH.exists()):
+        raise PermissionError("vault locked or settings unavailable")
     data[key] = value
-    from vault import vault
-    STORE.write_bytes(vault.seal(json.dumps(data, indent=1).encode("utf-8")))
+    payload = vault.seal(json.dumps(data, indent=1).encode("utf-8"))
+    fd, tmp = tempfile.mkstemp(dir=str(STORE.parent), prefix=f".{STORE.name}.")
     try:
-        STORE.chmod(0o600)
-    except OSError:
-        pass
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "wb") as stream:
+            fd = -1
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(tmp, STORE)
+    except Exception:
+        if fd >= 0:
+            os.close(fd)
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+        raise
     return data
 
 
