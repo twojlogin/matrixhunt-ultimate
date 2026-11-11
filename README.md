@@ -34,7 +34,7 @@ Lub uruchom bootstrap.sh (tworzy .venv i instaluje zależności):
 ```bash
 bash bootstrap.sh
 cd backend && ../.venv/bin/python main.py
-```
+```https://github.com/twojlogin/matrixhunt-ultimate/blob/main/README.md
 
 Aplikacja zajmuje pierwszy wolny port od 8000 i wypisuje go w konsoli.
 Przy pustej bazie robi jednorazowy scrape startowy. Internetu używa tylko do:
