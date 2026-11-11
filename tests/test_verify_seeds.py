@@ -1,6 +1,8 @@
 import json
 
-from tools import verify_seeds
+import sys
+sys.path.insert(0, 'tools/scripts')
+import verify_seeds
 
 
 def test_steam_offer_requires_explicit_free_to_play_flag():

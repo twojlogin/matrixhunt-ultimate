@@ -241,7 +241,7 @@ def _linki_wewnetrzne():
     linki = set()
     for p in [ROOT / "frontend" / "index.html",
               ROOT / "frontend" / "offers.jsx",
-              *sorted((ROOT / "tools").glob("*.html"))]:
+              *sorted((ROOT / "tools" / "pages").glob("*.html"))]:
         linki |= set(_TLE.findall(p.read_text(encoding="utf-8")))
     return linki
 
@@ -285,7 +285,7 @@ def test_Q9_zaden_skrypt_ani_styl_z_cdn():
 
 
 def test_Q9_flash_odtwarza_arcade_bez_lokalnego_playera():
-    tekst = (ROOT / "tools" / "flash_player.html").read_text(encoding="utf-8")
+    tekst = (ROOT / "tools" / "pages" / "flash_player.html").read_text(encoding="utf-8")
     zle = re.findall(r'<(?:script|link)[^>]+(?:src|href)="http[^"]*"[^>]*>', tekst)
     assert not zle, f"player ciągnie z sieci: {zle}"
     assert 'id="arcade-game"' in tekst
@@ -432,7 +432,7 @@ def test_Q14_dashboard_i_offers_renderuja_bez_wyjatku():
     """
     if shutil.which("node") is None:
         pytest.skip("brak node")
-    r = subprocess.run(["node", "tools/smoke_render.js"], cwd=str(ROOT),
+    r = subprocess.run(["node", "tools/scripts/smoke_render.js"], cwd=str(ROOT),
                        capture_output=True, text=True, timeout=120)
     assert r.returncode == 0, f"smoke FAIL:\n{r.stdout}\n{r.stderr}"
     assert "OFFERS-RENDER-OK" in r.stdout and "INDEX-RENDER-OK" in r.stdout
@@ -544,16 +544,16 @@ def test_Q16_krotki_tytul_nie_pozyera_krewnych(baza):
 _WSPOLNE = [ROOT / "frontend" / "index.html",
             ROOT / "frontend" / "offers.jsx",
             ROOT / "frontend" / "offers.html",
-            ROOT / "tools" / "retro.html",
-            ROOT / "tools" / "bookmarks.html",
-            ROOT / "tools" / "wiki.html"]
+            ROOT / "tools" / "pages" / "retro.html",
+            ROOT / "tools" / "pages" / "bookmarks.html",
+            ROOT / "tools" / "pages" / "wiki.html"]
 
 
 def test_Q17_sources_i_deszzz_definiowane_raz():
-    """SOURCES i themeLabel żyją w tools/site.js. Kopie w stronach wracały
+    """SOURCES i themeLabel żyją w tools/scripts/site.js. Kopie w stronach wracały
     przy każdej zmianie (raz dopisano LowcyGier tylko w jednym miejscu)."""
     defs = []
-    for p in _WSPOLNE + [ROOT / "tools" / "site.js"]:
+    for p in _WSPOLNE + [ROOT / "tools" / "scripts" / "site.js"]:
         t = p.read_text(encoding="utf-8")
         if re.search(r"(?:const|var) SOURCES\s*=\s*\[", t):
             defs.append(f"{p.name}: SOURCES")
@@ -580,7 +580,7 @@ def test_Q17_deszcz_tylko_w_site_js():
         if p.suffix == ".jsx":
             continue
         t = p.read_text(encoding="utf-8")
-        assert "/tools/site.js" in t, f"{p.name} nie ładuje site.js"
+        assert "/tools/scripts/site.js" in t, f"{p.name} nie ładuje site.js"
 
 
 # ============================================================ Q18: spójna nawigacja i filtr źródeł
@@ -589,13 +589,13 @@ _KANON = ["/", "/offers", "/view", "/db", "/retro", "/pad",
 _STRONY = [ROOT / "frontend" / "index.html",
            ROOT / "frontend" / "offers.jsx",
            ROOT / "frontend" / "pad_test.html",
-           ROOT / "tools" / "retro.html",
-           ROOT / "tools" / "flash_player.html",
-           ROOT / "tools" / "viewer.html",
-           ROOT / "tools" / "db.html",
-           ROOT / "tools" / "uwagi.html",
-           ROOT / "tools" / "bookmarks.html",
-           ROOT / "tools" / "wiki.html"]
+           ROOT / "tools" / "pages" / "retro.html",
+           ROOT / "tools" / "pages" / "flash_player.html",
+           ROOT / "tools" / "pages" / "viewer.html",
+           ROOT / "tools" / "pages" / "db.html",
+           ROOT / "tools" / "pages" / "uwagi.html",
+           ROOT / "tools" / "pages" / "bookmarks.html",
+           ROOT / "tools" / "pages" / "wiki.html"]
 
 
 def test_Q18_kazda_strona_ma_kanoniczne_10_linkow():
@@ -626,7 +626,7 @@ def test_Q18_filtr_zrodel_to_dokladnie_aktywne_scrapery():
     """'Epic' w filtrze przy 'Epic Games' w bazie dawał pustą listę,
     a zaparkowane (Itch.io i spółka) i DelistedSteam udawały wybór.
     Równość zbiorów: ani martwych, ani brakujących."""
-    t = (ROOT / "tools" / "site.js").read_text(encoding="utf-8")
+    t = (ROOT / "tools" / "scripts" / "site.js").read_text(encoding="utf-8")
     m = re.search(r"SOURCES = \[(.*?)\]", t, re.S)
     opcje = set(re.findall(r"'([^']+)'", m.group(1))) - {"ALL"}
     assert opcje == _aktywne_wyswietlane_nazwy(), (
@@ -640,7 +640,7 @@ def test_Q19_lang_toggle_placeholder_i_pamiec():
     nietknięty, śmieć w storage nie wywala (fallback en)."""
     if shutil.which("node") is None:
         pytest.skip("brak node")
-    r = subprocess.run(["node", "tools/i18n_check.js"], cwd=str(ROOT),
+    r = subprocess.run(["node", "tools/scripts/i18n_check.js"], cwd=str(ROOT),
                        capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, f"i18n FAIL:\n{r.stdout}\n{r.stderr}"
     assert "I18N-OK" in r.stdout
@@ -649,7 +649,7 @@ def test_Q19_lang_toggle_placeholder_i_pamiec():
 # ============================================================ Q10: punktacja JS (regresje z komentarzy w kodzie)
 _NODE_PROG = """
 const fs = require("fs");
-let src = fs.readFileSync("tools/emulator-db.js", "utf8");
+let src = fs.readFileSync("tools/scripts/emulator-db.js", "utf8");
 src += ";globalThis.__T={getGPUScore,scoreEmulator,EMULATOR_DB};";
 eval(src);
 const T = globalThis.__T;

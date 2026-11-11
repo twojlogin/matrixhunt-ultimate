@@ -662,7 +662,7 @@ async def offers_page():
 
 @app.get("/uwagi", response_class=HTMLResponse)
 async def uwagi_page():
-    return FileResponse(str(TOOLS_DIR / "uwagi.html"))
+    return FileResponse(str(TOOLS_DIR / "pages" / "uwagi.html"))
 
 
 MAX_OFFERS_LIMIT = 1000
@@ -797,32 +797,32 @@ async def pad_test():
 
 @app.get("/retro")
 async def retro_hub():
-    return FileResponse(str(TOOLS_DIR / "retro.html"))
+    return FileResponse(str(TOOLS_DIR / "pages" / "retro.html"))
 
 
 @app.get("/wiki")
 async def wiki_hub():
-    return FileResponse(str(TOOLS_DIR / "wiki.html"))
+    return FileResponse(str(TOOLS_DIR / "pages" / "wiki.html"))
 
 
 @app.get("/bookmarks")
 async def bookmarks_hub():
-    return FileResponse(str(TOOLS_DIR / "bookmarks.html"))
+    return FileResponse(str(TOOLS_DIR / "pages" / "bookmarks.html"))
 
 
 @app.get("/flash")
 async def flash_player():
-    return FileResponse(str(TOOLS_DIR / "flash_player.html"))
+    return FileResponse(str(TOOLS_DIR / "pages" / "flash_player.html"))
 
 
 @app.get("/muzeum")
 async def muzeum():
     """Muzeum okazów: lokalna kolekcja ataków złapanych przez sanityzer."""
-    return FileResponse(str(TOOLS_DIR / "muzeum.html"))
+    return FileResponse(str(TOOLS_DIR / "pages" / "muzeum.html"))
 
 @app.get("/sprzet")
 async def sprzet():
-    return FileResponse(str(TOOLS_DIR / "sprzet.html"))
+    return FileResponse(str(TOOLS_DIR / "pages" / "sprzet.html"))
 
 
 @app.get("/api/specimens")
@@ -1090,7 +1090,7 @@ def _same_url_origin(first, second):
 
 @app.get("/view")
 async def viewer():
-    return FileResponse(str(TOOLS_DIR / "viewer.html"))
+    return FileResponse(str(TOOLS_DIR / "pages" / "viewer.html"))
 
 
 @app.get("/api/sessions")
@@ -1399,7 +1399,7 @@ def _db_tables():
 
 @app.get("/db")
 async def db_viewer():
-    return FileResponse(str(TOOLS_DIR / "db.html"))
+    return FileResponse(str(TOOLS_DIR / "pages" / "db.html"))
 
 
 @app.get("/api/db/tables")
