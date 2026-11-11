@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Samo-naprawczy bootstrap MatrixHunt Ultimate.
-# Używa arek-bootstrap, jeśli jest dostępny; w przeciwnym razie venv ręcznie.
+# Bootstrap MatrixHunt Ultimate — tworzy .venv i instaluje zależności.
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -29,10 +29,10 @@ python3 -m venv .venv
 cd backend && ../.venv/bin/python main.py
 ```
 
-Albo, jeśli masz zainstalowany `arek-bootstrap`:
+Lub uruchom bootstrap.sh (tworzy .venv i instaluje zależności):
 
 ```bash
-arek-bootstrap --install   # wykryje Python, utworzy .venv, zainstaluje deps
+bash bootstrap.sh
 cd backend && ../.venv/bin/python main.py
 ```
 
