@@ -14,12 +14,12 @@ const SHELL = [
   '/flash',
   '/db',
   '/view',
-  '/tools/api.js',
-  '/tools/theme.js',
-  '/tools/lang.js',
-  '/tools/outbound.js',
+  '/tools/assets/api.js',
+  '/tools/assets/theme.js',
+  '/tools/assets/lang.js',
+  '/tools/assets/outbound.js',
   '/tools/emulator-db.js',
-  '/tools/hardware-detect.js',
+  '/tools/assets/hardware-detect.js',
 ];
 
 self.addEventListener('install', (event) => {

@@ -69,7 +69,7 @@ footer a:hover{color:var(--cyan);text-decoration:underline}
 .calibration-view{background:var(--card);border:1px solid var(--border);padding:8px;font-size:0.75em;max-height:150px;overflow-y:auto;white-space:pre-wrap;color:var(--green)}
 .drift-status{padding:4px 8px;border:1px solid var(--border);display:inline-block;margin-top:4px;font-size:0.85em}
 </style>
-    <link rel="stylesheet" href="../tools/theme.css">
+    <link rel="stylesheet" href="../tools/assets/theme.css">
 </head>
 <body>
 <canvas id="matrix-bg"></canvas>
@@ -608,10 +608,10 @@ drivers.forEach(function(d){dc.innerHTML+='<div class="driver-card"><div><span c
 setInterval(function(){var gp=getPad();if(gp){if(gp.id!==lastPadId){lastPadId=gp.id;padStatus('GAMEPAD: '+gp.id)}gamepadConnected=true;updateSticks(gp)}else if(gamepadConnected||lastPadId){gamepadConnected=false;lastPadId=null;padStatus('No gamepad detected — naciśnij dowolny przycisk na padzie. (Linux: sudo usermod -aG input $USER, potem wyloguj/zaloguj)')}},50);
 })();
 </script>
-    <script src="../tools/theme.js"></script>
-    <script src="../tools/api.js"></script>
-    <script src="../tools/lang.js"></script>
-    <script src="../tools/outbound.js"></script>
+    <script src="../tools/assets/theme.js"></script>
+    <script src="../tools/assets/api.js"></script>
+    <script src="../tools/assets/lang.js"></script>
+    <script src="../tools/assets/outbound.js"></script>
 
 </body>
 </html>

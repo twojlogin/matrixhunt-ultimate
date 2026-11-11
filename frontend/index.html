@@ -18,7 +18,7 @@
             --glow: 0 0 10px #0f0, 0 0 20px rgba(0,255,0,0.3);
             --font: 'Courier New', 'Lucida Console', monospace;
         }
-        /* Palette switching is handled by /tools/theme.css via [data-theme].
+        /* Palette switching is handled by /tools/assets/theme.css via [data-theme].
            The old .light-theme override only set --dark-bg/--card-bg, which the
            shared layer does not read, so it was removed. */
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -308,7 +308,7 @@
             footer > div { flex-basis: 100%; }
         }
     </style>
-    <link rel="stylesheet" href="/tools/theme.css">
+    <link rel="stylesheet" href="/tools/assets/theme.css">
 </head>
 <body>
     <canvas id="matrix-bg"></canvas>
@@ -320,10 +320,10 @@
     <script src="/static/vendor/react.production.min.js"></script>
     <script src="/static/vendor/react-dom.production.min.js"></script>
     <script src="/static/vendor/babel.min.js"></script>
-    <script src="/tools/theme.js"></script>
-    <script src="/tools/api.js"></script>
-    <script src="/tools/lang.js"></script>
-    <script src="/tools/outbound.js"></script>
+    <script src="/tools/assets/theme.js"></script>
+    <script src="/tools/assets/api.js"></script>
+    <script src="/tools/assets/lang.js"></script>
+    <script src="/tools/assets/outbound.js"></script>
     <script src="/tools/scripts/site.js"></script>
 
     <script type="text/babel">
