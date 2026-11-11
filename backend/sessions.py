@@ -99,7 +99,6 @@ def save_jar(jar):
             print("[sessions] vault locked - refusing to write cookies in plaintext")
             return
         if path.exists() and path.read_bytes().startswith(b"VAULT1:") and vault.locked:
-            global _SEAL_WARNED
             if path.name not in _SEAL_WARNED:
                 _SEAL_WARNED.add(path.name)
                 print(f"[sessions] vault locked - keeping {path.name} "
