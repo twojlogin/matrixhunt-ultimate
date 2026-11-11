@@ -3,6 +3,8 @@
 [![CI](https://github.com/twojlogin/matrixhunt-ultimate/actions/workflows/ci.yml/badge.svg)](https://github.com/twojlogin/matrixhunt-ultimate/actions/workflows/ci.yml)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](LICENSE.md)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](requirements.txt)
+[![GitHub stars](https://img.shields.io/github/stars/twojlogin/matrixhunt-ultimate?style=flat)](https://github.com/twojlogin/matrixhunt-ultimate/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/twojlogin/matrixhunt-ultimate)](https://github.com/twojlogin/matrixhunt-ultimate/commits/main)
 
 
 > Lokalny agregator darmowych gier: zbiera oferty ze sklepów, pokazuje je w przeglądarce,
