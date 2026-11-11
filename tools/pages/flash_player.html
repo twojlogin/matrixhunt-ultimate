@@ -219,6 +219,7 @@
       </select>
       <input id="arcade-custom" class="btn" type="text" placeholder="np. arcade_pacman" style="min-width:220px;" />
       <button class="btn" id="arcade-load" type="button">[ PLAY SELECTED GAME ]</button>
+      <button class="btn" id="arcade-fullscreen" type="button">[ FULLSCREEN ]</button>
     </div>
     <iframe id="arcade-frame" title="Browser arcade game" src="https://archive.org/embed/arcade_1942"
       allow="autoplay; gamepad" allowfullscreen loading="eager" referrerpolicy="no-referrer"
@@ -267,6 +268,11 @@
   }
   document.getElementById('arcade-load').addEventListener('click', loadArcadeGame);
   arcadeSelect.addEventListener('change', loadArcadeGame);
+  document.getElementById('arcade-fullscreen').addEventListener('click', function() {
+    const el = arcadeFrame;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  });
 })();
 </script>
 
