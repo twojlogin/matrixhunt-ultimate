@@ -820,6 +820,10 @@ async def muzeum():
     """Muzeum okazów: lokalna kolekcja ataków złapanych przez sanityzer."""
     return FileResponse(str(TOOLS_DIR / "muzeum.html"))
 
+@app.get("/sprzet")
+async def sprzet():
+    return FileResponse(str(TOOLS_DIR / "sprzet.html"))
+
 
 @app.get("/api/specimens")
 async def specimens_list(limit: int = 200):

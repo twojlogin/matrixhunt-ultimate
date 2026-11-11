@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>MATRIXHUNT — Sprzęt</title>
+<link rel="stylesheet" href="/tools/theme.css">
+<script src="/tools/hardware-detect.js"></script>
+</head>
+<body>
+<header><h1>SPRZĘT — detekcja</h1></header>
+<nav class="topnav">
+<a href="/">HOME</a><a href="/sprzet" class="active">SPRZĘT</a><a href="/db">DB</a><a href="/retro">RETRO</a>
+</nav>
+<main style="padding:20px">
+<div id="hw"></div>
+</main>
+<script>
+const d = new HardwareDetector();
+d.detectAll().then(hw => {
+  const el = document.getElementById('hw');
+  if (typeof renderHardwareSummary === 'function') renderHardwareSummary(hw, 'hw');
+  else el.textContent = JSON.stringify(hw, null, 2);
+});
+</script>
+</body>
+</html>
