@@ -746,7 +746,16 @@
   <a href="/bookmarks" style="color:var(--green);margin:0 10px;">BOOKMARKS</a>
   <a href="/flash" style="color:var(--green);margin:0 10px;">FLASH</a>
   <a href="/uwagi" style="color:var(--green);margin:0 10px;">UWAGI</a>
+  <a href="/view#privacy">PRIVACY</a>
 </footer>
 
+<script>
+(function(){
+  if (location.hash === '#privacy') {
+    var d = document.getElementById('privacy');
+    if (d) d.open = true;
+  }
+})();
+</script>
 </body>
 </html>
