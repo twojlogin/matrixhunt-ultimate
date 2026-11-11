@@ -215,7 +215,14 @@
         <option value="arcade_1942">1942</option>
         <option value="arcade_invaders">Space Invaders</option>
         <option value="arcade_20pacgal">Ms. Pac-Man / Galaga</option>
+        <option value="arcade_pacman">Pac-Man</option>
+        <option value="arcade_galaga">Galaga</option>
+        <option value="arcade_donkeykong">Donkey Kong</option>
+        <option value="arcade_frogger">Frogger</option>
+        <option value="arcade_digdug">Dig Dug</option>
+        <option value="custom">Własny ID archive.org...</option>
       </select>
+      <input id="arcade-custom" class="btn" type="text" placeholder="np. arcade_pacman" style="min-width:220px;" />
       <button class="btn" id="arcade-load" type="button">[ PLAY SELECTED GAME ]</button>
     </div>
     <iframe id="arcade-frame" title="Browser arcade game" src="https://archive.org/embed/arcade_1942"
@@ -246,16 +253,27 @@
   const arcadeGames = {
     arcade_1942: '1942',
     arcade_invaders: 'Space Invaders',
-    arcade_20pacgal: 'Ms. Pac-Man / Galaga'
+    arcade_20pacgal: 'Ms. Pac-Man / Galaga',
+    arcade_pacman: 'Pac-Man',
+    arcade_galaga: 'Galaga',
+    arcade_donkeykong: 'Donkey Kong',
+    arcade_frogger: 'Frogger',
+    arcade_digdug: 'Dig Dug'
   };
   const arcadeSelect = document.getElementById('arcade-game');
+  const arcadeCustom = document.getElementById('arcade-custom');
   const arcadeFrame = document.getElementById('arcade-frame');
+  function resolveId() {
+    if (arcadeSelect.value === 'custom') return (arcadeCustom.value || '').trim();
+    return arcadeSelect.value;
+  }
   function loadArcadeGame() {
-    const id = arcadeSelect.value;
-    if (!Object.prototype.hasOwnProperty.call(arcadeGames, id)) return;
-    const url = 'https://archive.org/embed/' + id;
+    const id = resolveId();
+    if (!id) return;
+    const title = arcadeGames[id] || id;
+    const url = 'https://archive.org/embed/' + encodeURIComponent(id);
     arcadeFrame.src = url;
-    arcadeFrame.title = arcadeGames[id];
+    arcadeFrame.title = title;
   }
   document.getElementById('arcade-load').addEventListener('click', loadArcadeGame);
   arcadeSelect.addEventListener('change', loadArcadeGame);
