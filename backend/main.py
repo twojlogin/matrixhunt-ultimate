@@ -1731,7 +1731,10 @@ def find_port(start=8000, tries=20):
                 owner = probe_app(port)
             except Exception:
                 owner = "unknown"
-            print(f"Port {port} busy (held by: {owner}), trying next…")
+            if owner == "matrixhunt":
+                print(f"MatrixHunt już działa na porcie {port}. Zatrzymaj istniejącą instancję albo użyj innego portu.")
+                raise SystemExit(1)
+            print(f"Na porcie {port} działa inna aplikacja ({owner}). Szukam wolnego portu…")
         finally:
             try:
                 s.close()
