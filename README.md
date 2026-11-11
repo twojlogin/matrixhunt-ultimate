@@ -1,5 +1,10 @@
 # MatrixHunt Ultimate
 
+[![CI](https://github.com/twojlogin/matrixhunt-ultimate/actions/workflows/ci.yml/badge.svg)](https://github.com/twojlogin/matrixhunt-ultimate/actions/workflows/ci.yml)
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](LICENSE.md)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](requirements.txt)
+
+
 > Lokalny agregator darmowych gier: zbiera oferty ze sklepów, pokazuje je w przeglądarce,
 > czyści strony z reklam i trackerów. Zero chmury, zero CDN — React i Babel
 > są zvendorowane, baza to lokalny SQLite.
@@ -136,7 +141,7 @@ doklejone „na siłę” do potoku zostały już przejęte przez wstrzyknięty 
 
 `/retro` to hub linków (emulatory, ROM-y, vault, delisted) — gier nie uruchamia.
 Ma też **skan sprzętu**: WebGL, `hardwareConcurrency`, `deviceMemory`, Gamepad API
-porównane z progami z `tools/emulator-db.js`. Granice uczciwości: RAM 0 = przeglądarka
+porównane z progami z `tools/scripts/emulator-db.js`. Granice uczciwości: RAM 0 = przeglądarka
 ukrywa, RAM 8 GB = możliwy limit Chromium, Vulkan = UNKNOWN gdy niewykrywalny,
 zamaskowany renderer GPU = wynik szacowany. Na Windows + Chrome wynik wiarygodny,
 na Firefox/Safari pesymistyczny.
@@ -148,10 +153,10 @@ otwierania lokalnych plików; do działania potrzebuje połączenia z internetem
 
 ```bash
 .venv/bin/python -m pytest tests/ -q
-node tools/smoke_render.js                  # render `/`, `/offers`, `/view` bez przeglądarki
+node tools/scripts/smoke_render.js                  # render `/`, `/offers`, `/view` bez przeglądarki
 ./weryfikuj.sh                               # pełna weryfikacja z siecią (uwaga: start serwera = scrape, >120 s)
 ./sync.sh <katalog-docelowy>                # lustro do drugiej kopii (bez twardych ścieżek)
-./tools/scan_wyciekow.sh                    # higiena przed pushem (sekrety, ścieżki)
+./tools/shell/scan_wyciekow.sh                    # higiena przed pushem (sekrety, ścieżki)
 ```
 
 | Plik | Co sprawdza |
@@ -170,7 +175,7 @@ przy żywym błędzie (`Deal.price` domyślnie `"Free"`), dopisaliśmy testy, kt
 ```
 backend/            # FastAPI: main.py, scrapers/, cleaner, vault, sessions, DB
 frontend/           # / i /offers (React zvendorowany) + vendor/ (Babel)
-tools/              # strony /view /retro /wiki /flash /db /muzeum + skrypty (build, smoke, skan)
+tools/              # pages/ (strony HTML), scripts/ (build, smoke, i18n), shell/ (.sh), assets/ (css/js)
 data/               # retro.json, bookmarks.json, seed_offers.json (36 zweryfikowanych tytułów F2P)
 tests/              # testy jednostkowe, integracyjne i regresyjne
 ```
