@@ -955,7 +955,14 @@ def _clean_sync(url, method, headers, query_params, post_body, ephemeral=False):
                 r.close()
                 if not location:
                     return JSONResponse({"error": "empty redirect"}, status_code=502)
-                current = urljoin(current, location)
+                redirect_target = urljoin(current, location)
+                if (r.status_code in (307, 308) and cur_method == "POST"
+                        and not _same_url_origin(current, redirect_target)):
+                    return JSONResponse(
+                        {"error": "login form redirect changed origin"},
+                        status_code=403,
+                    )
+                current = redirect_target
                 if r.status_code in (301, 302, 303) and cur_method == "POST":
                     cur_method, cur_body = "GET", None
                 continue
@@ -1054,6 +1061,25 @@ def _clean_sync(url, method, headers, query_params, post_body, ephemeral=False):
         return JSONResponse({"error": "too many redirects"}, status_code=502)
     finally:
         sess.close()
+
+
+def _same_url_origin(first, second):
+    def origin(url):
+        try:
+            parts = urlsplit(url)
+            scheme = parts.scheme.lower()
+            hostname = parts.hostname
+            port = parts.port
+        except ValueError:
+            return None
+        if (scheme not in ("http", "https") or not hostname
+                or parts.username is not None or parts.password is not None):
+            return None
+        return (scheme, hostname.lower(),
+                port if port is not None else (443 if scheme == "https" else 80))
+
+    first_origin = origin(first)
+    return first_origin is not None and first_origin == origin(second)
 
 
 

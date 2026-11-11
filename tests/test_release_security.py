@@ -205,6 +205,56 @@ def test_proxy_refuses_to_forward_post_body_over_http():
     assert b"HTTPS" in response.body
 
 
+def test_proxy_refuses_cross_origin_307_post_redirect(monkeypatch):
+    import main
+    import sessions
+    import settings_store
+
+    class Redirect:
+        status_code = 307
+        headers = {"Location": "https://attacker.example/collect"}
+
+        def close(self):
+            pass
+
+    class Session:
+        def __init__(self):
+            self.headers = {}
+            self.calls = []
+
+        def request(self, method, url, **kwargs):
+            self.calls.append((method, url, kwargs))
+            return Redirect()
+
+        def close(self):
+            pass
+
+    session = Session()
+    monkeypatch.setattr(main, "new_safe_session", lambda _proxies: session)
+    monkeypatch.setattr(main, "is_url_allowed", lambda *_args, **_kwargs: (True, ""))
+    monkeypatch.setattr(settings_store, "read_settings", lambda: {"proxy_clean": True})
+    monkeypatch.setattr(settings_store, "effective_proxies", lambda _settings: {})
+    monkeypatch.setattr(sessions, "attach_to_requests", lambda *_args: None)
+
+    response = main._clean_sync(
+        "https://store.example/login", "POST",
+        {"content-type": "application/x-www-form-urlencoded"},
+        {}, b"password=secret")
+
+    assert response.status_code == 403
+    assert len(session.calls) == 1
+    assert session.calls[0][2]["data"] == b"password=secret"
+
+
+def test_same_url_origin_normalizes_default_ports():
+    import main
+
+    assert main._same_url_origin("https://store.example/login",
+                                 "https://store.example:443/continue")
+    assert not main._same_url_origin("https://store.example/login",
+                                     "https://other.example/collect")
+
+
 def test_vault_locked_does_not_encrypt_by_plaintext_fallback(tmp_path, monkeypatch):
     import vault
 
