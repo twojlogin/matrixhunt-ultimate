@@ -252,7 +252,7 @@ def test_Q8_kazdy_link_wewnetrzny_ma_trase():
     publiczne = set(getattr(main, "_PUBLIC_DATA", ()))
     brak = []
     for link in sorted(_linki_wewnetrzne()):
-        link = link.split("?", 1)[0].rstrip("?&") or "/"
+        link = link.split("?", 1)[0].split("#", 1)[0].rstrip("?&") or "/"
         if link in trasy:
             continue
         if link.startswith(("/api/", "/static/", "/tools/")):

@@ -9,7 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 
-const ROOT = path.join(__dirname, "..");
+const ROOT = path.join(__dirname, "..", "..");
 
 const stubs = `
 const __el = () => ({ style: {}, appendChild(){}, addEventListener(){},
@@ -70,7 +70,7 @@ try {
 
 // 3) /view — inline skrypt viewer.html na gołym ?search (ekran startowy)
 try {
-  const vhtml = fs.readFileSync(path.join(ROOT, "tools", "viewer.html"), "utf8");
+  const vhtml = fs.readFileSync(path.join(ROOT, "tools", "pages", "viewer.html"), "utf8");
   const m2 = vhtml.match(/<script>\n([\s\S]*?)\n\s*<\/script>/);
   if (!m2) throw new Error("brak bloku <script> w viewer.html");
   eval(stubs);

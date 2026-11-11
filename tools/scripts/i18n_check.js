@@ -52,7 +52,7 @@ function bootStore(browserLang, preset) {
     setItem(k, v) { store._s[k] = String(v); },
   };
   global.CustomEvent = function () {};
-  eval(fs.readFileSync(path.join(__dirname, "lang.js"), "utf8"));
+  eval(fs.readFileSync(path.join(__dirname, "..", "assets", "lang.js"), "utf8"));
   return { elText, elPh, elUnknown, elKids, store };
 }
 
