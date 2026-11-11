@@ -53,5 +53,4 @@ tools/
 
 ## Status
 
-Plan przygotowany, nie wykonany. Wykonanie wymaga zgody na aktualizację
-referencji w testach i backendzie.
+Plan wykonany. Zmiany zatwierdzone i wypchnięte (commit 70fdfb4 i kolejne).
