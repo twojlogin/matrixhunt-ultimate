@@ -44,6 +44,11 @@ jobs:
       - name: Kompilacja (py_compile)
         run: python -m compileall -q backend
 
+      - name: Lint (flake8 - błędy krytyczne)
+        run: |
+          pip install flake8
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
       - name: Testy (pytest)
         run: python -m pytest tests/ -q
 
