@@ -5,8 +5,10 @@
       "icon": "🇵🇱",
       "links": [
         { "name": "LowcyGier.pl", "url": "https://lowcygier.pl", "desc": "Polish gaming news and deals" },
-        { "name": "Pepper.pl - Gry", "url": "https://www.pepper.pl/grupy/gry", "desc": "Gaming deals community" },
-        { "name": "Papper.pl", "url": "https://papper.pl", "desc": "Price tracking and alerts" },
+        { "name": "Pepper.pl - Gry", "url": "https://www.pepper.pl/grupa/gry-wideo", "desc": "Gaming deals community" },
+        { "name": "GG.deals", "url": "https://gg.deals", "desc": "Porównywarka cen gier i alerty" },
+        { "name": "SteamDB", "url": "https://steamdb.info", "desc": "Historia cen, statystyki i zmiany Steam" },
+        { "name": "CheapShark", "url": "https://www.cheapshark.com", "desc": "Wyszukiwarka okazji na gry PC" },
         { "name": "CDAction", "url": "https://www.cdaction.pl", "desc": "Polish gaming magazine" },
         { "name": "Polygamia", "url": "https://polygamia.pl", "desc": "Polish gaming portal" },
         { "name": "Graczpospolita", "url": "https://graczpospolita.pl", "desc": "Gaming news in Polish" }
