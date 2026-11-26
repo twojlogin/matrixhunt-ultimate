@@ -7,8 +7,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
 python3 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/pip install -r requirements.txt
+.venv/bin/python -m pip install --disable-pip-version-check -q --upgrade pip
+.venv/bin/pip install --disable-pip-version-check -q -r requirements.txt
 
 # Aktywacja działa tylko w bieżącym procesie, więc dla terminala
 # uruchamiamy nową powłokę z aktywnym .venv.

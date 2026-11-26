@@ -36,7 +36,7 @@ for _ in $(seq 1 40); do
 done
 
 PORT=$(grep -oE "127\.0\.0\.1:[0-9]+" "$LOG" 2>/dev/null | head -1 | cut -d: -f2)
-PORT="${PORT:-8000}"
+PORT="${MH_PORT:-${PORT:-8765}}"
 echo "$PORT" > "$PORT_FILE"
 echo "Serwer na porcie: $PORT (log: $LOG)"
 

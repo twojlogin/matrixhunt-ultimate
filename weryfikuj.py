@@ -36,11 +36,12 @@ def _run_dir():
 
 
 def _port():
-    """Port z env, potem z pliku, potem z logu startu, fallback 8000."""
+    """Port z env, potem z pliku, potem z logu startu, fallback 8765."""
     import os
-    env = os.environ.get("MH_PORT", "").strip()
-    if env.isdigit():
-        return int(env)
+    for name in ("MH_PORT", "PORT"):
+        env = os.environ.get(name, "").strip()
+        if env.isdigit():
+            return int(env)
     run = _run_dir()
     for pt in (run / "port.txt",
                ROOT / ".tmp" / "port.txt"):
@@ -58,7 +59,7 @@ def _port():
                     return int(m.group(1))
         except OSError:
             pass
-    return 8000
+    return 8765
 
 
 PORT = _port()

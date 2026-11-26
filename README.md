@@ -30,20 +30,23 @@
 ## 1. Szybki start
 
 ```bash
+./run.sh
+```
+
+Skrypt tworzy `.venv` (jeśli brak), doinstalowuje zależności i uruchamia serwer.
+Domyślny port startowy to `8765`; jeśli zajęty, aplikacja wybiera kolejny wolny.
+Własny port: `MH_PORT=9010 ./run.sh`.
+
+Ręcznie (bez skryptu):
+
+```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/pip install -r requirements.txt
-cd backend && ../.venv/bin/python main.py
+.venv/bin/python backend/main.py
 ```
 
-Lub uruchom bootstrap.sh (tworzy .venv i instaluje zależności):
-
-```bash
-bash bootstrap.sh
-cd backend && ../.venv/bin/python main.py
-```https://github.com/twojlogin/matrixhunt-ultimate/blob/main/README.md
-
-Aplikacja zajmuje pierwszy wolny port od 8000 i wypisuje go w konsoli.
+Aplikacja wypisuje aktywny adres w konsoli.
 Przy pustej bazie robi jednorazowy scrape startowy. Internetu używa tylko do:
 sklepów/agregatorów, list filtrów (EasyList i spółka) oraz audytu zależności (na klik).
 

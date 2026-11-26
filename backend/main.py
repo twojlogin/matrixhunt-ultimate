@@ -287,7 +287,7 @@ def _is_own_origin(origin, request):
 @app.get("/api/client-config")
 async def client_config():
     """Token + port for the same-origin UI, guarded by peer and origin checks."""
-    return {"token": API_TOKEN, "port": getattr(app.state, "port", 8000)}
+    return {"token": API_TOKEN, "port": getattr(app.state, "port", 8765)}
 
 DB_PATH = f"sqlite:///{BASE_DIR / 'matrixhunt.db'}"
 SessionFactory = init_db(DB_PATH)
@@ -1714,11 +1714,23 @@ def probe_app(port):
     return "foreign"
 
 
-def find_port(start=8000, tries=20):
+def find_port(start=None, tries=20):
     """First free loopback port. Occupied ones are identified out loud:
     another MatrixHunt or a foreign app - either way we move on."""
+    import os as _os
     import socket as _socket
-    for port in range(start, start + tries):
+    if start is None:
+        env_port = _os.environ.get("MH_PORT", "").strip()
+        if env_port:
+            try:
+                start = int(env_port)
+            except ValueError:
+                raise SystemExit(f"MH_PORT musi być liczbą, dostano: {env_port!r}")
+        else:
+            start = 8765
+    if not (1 <= start <= 65535):
+        raise SystemExit(f"MH_PORT poza zakresem 1-65535: {start}")
+    for port in range(start, min(start + tries, 65536)):
         s = _socket.socket()
         try:
             s.bind(("127.0.0.1", port))
