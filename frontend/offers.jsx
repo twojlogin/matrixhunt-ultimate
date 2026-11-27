@@ -472,7 +472,7 @@
                     <div className="games-grid">
                         {filtered.length === 0 && (
                             <div style={{gridColumn:'1/-1', textAlign:'center', padding:'40px', opacity:0.5}}>
-                                {loading ? T.loading : dataError ? T.fetch_failed : T.no_offers}
+                                {loading ? T.loading : dataError ? T.fetch_failed : (nsfwMode && !offers.some(o => o.is_adult) ? (lang === 'pl' ? 'Brak ofert 18+ w bazie. Źródła dorosłe nie są teraz włączone/nie zwróciły danych.' : 'No 18+ offers in database. Adult sources are not enabled or returned no data.') : T.no_offers)}
                             </div>
                         )}
                         {filtered.map((offer, i) => {
@@ -567,7 +567,7 @@
                         <a href="/flash">FLASH</a>
                         <a href="/uwagi">UWAGI</a>
                         <div style={{fontSize:'0.7em', opacity:0.4, marginTop:'10px'}}>
-                              MATRIXHUNT ULTIMATE v2.0 // License: CC BY-NC-SA 4.0 // Author: Arkadiusz Slowik<br />
+                              MATRIXHUNT ULTIMATE v2.0 // License: MIT // Author: Arkadiusz Slowik<br />
                               This software is FREE. If someone is selling it, they are scammers.
                            </div>
                        </footer>

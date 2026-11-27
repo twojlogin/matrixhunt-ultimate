@@ -215,7 +215,7 @@
 
         <footer>
             <a href="/">HOME</a><a href="/offers">OFERTY</a><a href="/view">VIEW</a><a href="/db">DB</a><a href="/retro">RETRO</a><a href="/pad">PAD</a><a href="/wiki">WIKI</a><a href="/bookmarks">BOOKMARKS</a><a href="/flash">FLASH</a><a href="/uwagi">UWAGI</a><a href="/view#privacy">PRIVACY</a>
-            <div class="foot-meta">MATRIXHUNT ULTIMATE v2.0 // License: CC BY-NC-SA 4.0 // Author: Arkadiusz Slowik<br>This software is FREE. If someone is selling it, they are scammers.</div>
+            <div class="foot-meta">MATRIXHUNT ULTIMATE v2.0 // License: MIT // Author: Arkadiusz Slowik<br>This software is FREE. If someone is selling it, they are scammers.</div>
         </footer>
     </div>
 
@@ -341,7 +341,7 @@
         function exportCYIEProfile() {
             if (!cyieHardware) return alert('Run a scan first.');
             const profile = {
-                version: '2.0', generator: 'MATRIXHUNT ULTIMATE - Can You Emulate It?', author: 'Arkadiusz Slowik', license: 'CC BY-NC-SA 4.0', timestamp: new Date().toISOString(),
+                version: '2.0', generator: 'MATRIXHUNT ULTIMATE - Can You Emulate It?', author: 'Arkadiusz Slowik', license: 'MIT', timestamp: new Date().toISOString(),
                 hardware: { gpu: cyieHardware.gpu.renderer, gpuScore: cyieHardware.gpu.score, cpuCores: cyieHardware.cpu.cores, ramGB: cyieHardware.ram.gb, vulkan: cyieHardware.vulkan.supported, display: cyieHardware.display.width + 'x' + cyieHardware.display.height, browser: cyieHardware.browser.name + ' ' + cyieHardware.browser.version, os: cyieHardware.os.name + ' ' + cyieHardware.os.arch },
                 emulators: {}
             };
@@ -356,7 +356,7 @@
         function copyCYIEToClipboard() {
             if (!cyieHardware) return alert('Run a scan first.');
             let text = '=== CAN YOU EMULATE IT? - Hardware Report ===\n';
-            text += 'Generated: ' + new Date().toISOString() + '\nAuthor: Arkadiusz Slowik // License: CC BY-NC-SA 4.0\n\n--- DETECTED HARDWARE ---\n';
+            text += 'Generated: ' + new Date().toISOString() + '\nAuthor: Arkadiusz Slowik // License: MIT\n\n--- DETECTED HARDWARE ---\n';
             text += 'GPU: ' + cyieHardware.gpu.renderer + ' (score: ' + cyieHardware.gpu.score + '/100)\n';
             text += 'CPU: ' + cyieHardware.cpu.cores + ' cores [' + cyieHardware.cpu.tier + ']\n';
             text += 'RAM: ' + (cyieHardware.ram.gb > 0 ? cyieHardware.ram.gb + ' GB' : 'Unknown') + '\n';

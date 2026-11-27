@@ -1,6 +1,6 @@
 /**
  * MATRIXHUNT ULTIMATE - Emulator Requirements Database
- * License: CC BY-NC-SA 4.0
+ * License: MIT
  * Author: Arkadiusz Slowik
  *
  * 21 platforms from NES to PS5

@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const DIR = path.join(__dirname, '..', 'frontend');
+const DIR = path.join(__dirname, '..', '..', 'frontend');
 const SRC = path.join(DIR, 'offers.jsx');
 const OUT = path.join(DIR, 'offers.js');
 

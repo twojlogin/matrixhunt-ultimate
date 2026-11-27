@@ -596,7 +596,7 @@ function App() {
       padding: '40px',
       opacity: 0.5
     }
-  },   loading ? T.loading : dataError ? T.fetch_failed : T.no_offers), filtered.map((offer, i) => {
+  }, loading ? T.loading : dataError ? T.fetch_failed : nsfwMode && !offers.some(o => o.is_adult) ? lang === 'pl' ? 'Brak ofert 18+ w bazie. Źródła dorosłe nie są teraz włączone/nie zwróciły danych.' : 'No 18+ offers in database. Adult sources are not enabled or returned no data.' : T.no_offers), filtered.map((offer, i) => {
     const id = offer.id || offer.title || i;
     const isFav = favorites.includes(id);
     // Cena bierze sie wylacznie z price_claim, ktore ma
@@ -739,7 +739,7 @@ function App() {
       opacity: 0.4,
       marginTop: '10px'
     }
-  }, "MATRIXHUNT ULTIMATE v2.0 // License: CC BY-NC-SA 4.0 // Author: Arkadiusz Slowik", /*#__PURE__*/React.createElement("br", null), "This software is FREE. If someone is selling it, they are scammers.")), toast && /*#__PURE__*/React.createElement("div", {
+  }, "MATRIXHUNT ULTIMATE v2.0 // License: MIT // Author: Arkadiusz Slowik", /*#__PURE__*/React.createElement("br", null), "This software is FREE. If someone is selling it, they are scammers.")), toast && /*#__PURE__*/React.createElement("div", {
     className: "toast"
   }, toast), showAgeGate && /*#__PURE__*/React.createElement("div", {
     style: {
