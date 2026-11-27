@@ -1,27 +1,97 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="utf-8">
-<title>MATRIXHUNT — Sprzęt</title>
-<link rel="stylesheet" href="/tools/assets/theme.css">
-<script src="/tools/assets/hardware-detect.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <script>try{var _l=localStorage.getItem('mh_lang');if(_l!=='pl'&&_l!=='en'){_l=(navigator.language||'en').toLowerCase().indexOf('pl')===0?'pl':'en';}document.documentElement.setAttribute('data-lang',_l);}catch(e){document.documentElement.setAttribute('data-lang','en');}</script>
+    <script>try{var _t=localStorage.getItem('mh_theme');document.documentElement.setAttribute('data-theme',_t==='matrix'||_t==='night'||_t==='day'?_t:'night')}catch(e){document.documentElement.setAttribute('data-theme','night')}</script>
+    <title>MATRIXHUNT // SPRZĘT</title>
+    <style>
+        :root { --green:#0f0; --muted:rgba(0,255,0,.62); --border:rgba(0,255,0,.28); --card:rgba(0,18,0,.88); --glow:0 0 10px #0f0,0 0 24px rgba(0,255,0,.18); --font:'Courier New',monospace; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:#000; color:var(--green); font-family:var(--font); min-height:100vh; }
+        canvas#matrix-bg,.scanlines { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; }
+        canvas#matrix-bg { z-index:0; } .scanlines { z-index:1; background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0,rgba(0,0,0,.14) 1px,transparent 1px,transparent 3px); }
+        .container { position:relative; z-index:2; max-width:1100px; margin:0 auto; padding:20px 14px 60px; }
+        header { text-align:center; margin-bottom:18px; }
+        header h1 { display:inline-block; padding:12px 28px; border:2px solid var(--green); background:rgba(0,20,0,.92); letter-spacing:4px; text-shadow:var(--glow); font-size:clamp(1.3rem,4vw,2rem); }
+        .lead { margin-top:10px; color:var(--muted); font-size:.82rem; }
+        .topnav { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:18px 0; }
+        .topnav a { color:var(--green); text-decoration:none; border:1px solid var(--border); padding:8px 12px; font-size:.74rem; letter-spacing:1px; background:rgba(0,12,0,.9); }
+        .topnav a:hover,.topnav a.active { background:var(--green); color:#000; box-shadow:var(--glow); }
+        .panel { border:1px solid var(--border); background:var(--card); padding:16px; margin-bottom:14px; }
+        .panel h2 { font-size:.95rem; letter-spacing:2px; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+        .muted { color:var(--muted); font-size:.78rem; line-height:1.5; }
+        .btn { background:#001100; color:var(--green); border:1px solid var(--green); padding:10px 18px; font:inherit; letter-spacing:2px; cursor:pointer; }
+        .btn:hover { background:var(--green); color:#000; box-shadow:var(--glow); }
+        footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--border); text-align:center; }
+        footer a { color:var(--green); text-decoration:none; margin:0 6px; font-size:.74rem; } footer a:hover { text-decoration:underline; }
+        .foot-meta { margin-top:10px; font-size:.68rem; color:var(--muted); line-height:1.5; }
+        pre { white-space:pre-wrap; word-break:break-word; font-size:.78rem; color:var(--muted); }
+    </style>
 </head>
 <body>
-<header><h1>SPRZĘT — detekcja</h1></header>
-<nav class="topnav">
-<a href="/">HOME</a><a href="/sprzet" class="active">SPRZĘT</a><a href="/db">DB</a><a href="/retro">RETRO</a>
-</nav>
-<main style="padding:20px">
-<div id="hw"></div>
-</main>
-<script>
-const d = new HardwareDetector();
-d.detectAll().then(hw => {
-  const el = document.getElementById('hw');
-  if (typeof renderHardwareSummary === 'function') renderHardwareSummary(hw, 'hw');
-  else el.textContent = JSON.stringify(hw, null, 2);
-});
-</script>
-<script src="/tools/assets/theme.js"></script>
+    <canvas id="matrix-bg"></canvas>
+    <div class="scanlines"></div>
+    <div class="container">
+        <header>
+            <h1>SPRZĘT</h1>
+            <div class="lead">Lokalna detekcja sprzętu w przeglądarce // bez pluginów</div>
+        </header>
+
+        <nav class="topnav">
+            <a href="/">HOME</a>
+            <a href="/sprzet" class="active">SPRZĘT</a>
+            <a href="/db">DB</a>
+            <a href="/retro">RETRO</a>
+            <a href="/bookmarks">BOOKMARKS</a>
+        </nav>
+
+        <div class="panel">
+            <h2>DETEKCJA</h2>
+            <p class="muted" style="margin-bottom:12px;">Skan używa API przeglądarki. Wyniki są szacunkowe; część danych może być ukryta lub ograniczona przez przeglądarkę.</p>
+            <button class="btn" id="scan-btn">SKANUJ</button>
+        </div>
+
+        <div class="panel">
+            <h2>WYNIK</h2>
+            <div id="hw"><p class="muted">Kliknij „SKANUJ”, aby wykryć sprzęt.</p></div>
+        </div>
+
+        <footer>
+            <a href="/">HOME</a><a href="/offers">OFERTY</a><a href="/view">VIEW</a><a href="/db">DB</a><a href="/retro">RETRO</a><a href="/pad">PAD</a><a href="/wiki">WIKI</a><a href="/bookmarks">BOOKMARKS</a><a href="/sprzet">SPRZĘT</a>
+            <div class="foot-meta">MATRIXHUNT ULTIMATE v2.0 // detekcja lokalna w przeglądarce</div>
+        </footer>
+    </div>
+
+    <script src="/tools/scripts/emulator-db.js"></script>
+    <script src="/tools/assets/hardware-detect.js"></script>
+    <script src="/tools/scripts/site.js"></script>
+    <script>
+        window.MH && window.MH.matrixRain && window.MH.matrixRain();
+        async function scan() {
+            const btn = document.getElementById('scan-btn');
+            btn.disabled = true; btn.textContent = 'SKANOWANIE...';
+            try {
+                const detector = new HardwareDetector();
+                const hw = await detector.detectAll();
+                if (typeof renderHardwareSummary === 'function') {
+                    renderHardwareSummary(hw, 'hw');
+                } else {
+                    document.getElementById('hw').innerHTML = '<pre>' + JSON.stringify(hw, null, 2) + '</pre>';
+                }
+            } catch (e) {
+                document.getElementById('hw').innerHTML = '<p class="muted">Błąd skanu: ' + (e && e.message ? e.message : e) + '</p>';
+                console.error(e);
+            } finally {
+                btn.disabled = false; btn.textContent = 'SKANUJ PONOWNIE';
+            }
+        }
+        document.getElementById('scan-btn').addEventListener('click', scan);
+    </script>
+    <script src="/tools/assets/theme.js"></script>
+    <script src="/tools/assets/lang.js"></script>
+    <script src="/tools/assets/outbound.js"></script>
 </body>
 </html>
