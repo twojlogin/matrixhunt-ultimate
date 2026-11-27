@@ -8,369 +8,77 @@
     <script>try{var _t=localStorage.getItem('mh_theme');document.documentElement.setAttribute('data-theme',_t==='matrix'||_t==='night'||_t==='day'?_t:'night')}catch(e){document.documentElement.setAttribute('data-theme','night')}</script>
     <title>MATRIXHUNT // RETRO HUB</title>
     <style>
-        :root {
-            --green: #0f0;
-            --dim: rgba(0,255,0,0.15);
-            --bg: #000;
-            --card: rgba(0,20,0,0.85);
-            --glow: 0 0 10px #0f0, 0 0 20px rgba(0,255,0,0.3);
-            --font: 'Courier New', monospace;
-            --red: #f00;
-            --orange: #ff8800;
-        }
-
-        /* CAN YOU EMULATE IT - styles */
-        .scan-btn {
-            background: #000;
-            border: 2px solid var(--green);
-            color: var(--green);
-            padding: 18px 50px;
-            font-family: var(--font);
-            font-size: 1.1em;
-            letter-spacing: 4px;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: 0.2s;
-            display: inline-block;
-        }
-        .scan-btn:hover {
-            background: var(--green);
-            color: #000;
-            box-shadow: var(--glow);
-        }
-        .scan-section {
-            border: 1px solid var(--green);
-            background: var(--card);
-            padding: 18px;
-            margin: 15px 0;
-        }
-        .scan-section h3 {
-            font-size: 0.95em;
-            letter-spacing: 3px;
-            margin-bottom: 12px;
-            text-shadow: var(--glow);
-            border-bottom: 1px solid rgba(0,255,0,0.3);
-            padding-bottom: 6px;
-        }
-        .emu-bar-container {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 4px 0;
-            padding: 3px 8px;
-        }
-        .emu-bar-name {
-            width: 140px;
-            font-size: 0.82em;
-            color: var(--green);
-            flex-shrink: 0;
-        }
-        .emu-bar-track {
-            flex: 1;
-            background: #001100;
-            height: 18px;
-            border: 1px solid rgba(0,255,0,0.25);
-            overflow: hidden;
-        }
-        .emu-bar-fill {
-            height: 100%;
-            transition: width 0.8s ease;
-        }
-        .emu-bar-score {
-            width: 42px;
-            text-align: right;
-            font-size: 0.85em;
-            font-weight: bold;
-        }
-        .emu-bar-status {
-            width: 115px;
-            font-size: 0.68em;
-            letter-spacing: 1px;
-        }
-        .tier-header {
-            margin: 18px 0 8px;
-            padding: 4px 8px;
-            border-bottom: 1px solid rgba(0,255,0,0.3);
-            font-size: 0.72em;
-            letter-spacing: 2px;
-            opacity: 0.5;
-        }
-        .preset-card {
-            border: 1px solid rgba(0,255,0,0.3);
-            background: rgba(0,20,0,0.85);
-            padding: 12px;
-            transition: 0.2s;
-        }
-        .preset-card.match {
-            border-color: var(--green);
-            background: rgba(0,40,0,0.9);
-            box-shadow: var(--glow);
-        }
-        .note-text {
-            font-size: 0.7em;
-            opacity: 0.45;
-            margin-left: 148px;
-            margin-bottom: 3px;
-        }
-        .disclaimer-box {
-            background: rgba(0,0,0,0.9);
-            border: 1px solid var(--red);
-            padding: 10px;
-            margin: 10px 0;
-            font-size: 0.7em;
-            color: var(--red);
-            opacity: 0.8;
-        }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body {
-            background: var(--bg);
-            color: var(--green);
-            font-family: var(--font);
-            min-height: 100vh;
-        }
-        canvas#matrix-bg {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            z-index: 0; pointer-events: none;
-        }
-        .scanlines {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px);
-            z-index: 1; pointer-events: none;
-        }
-        .container {
-            position: relative; z-index: 2;
-            max-width: 1200px; margin: 0 auto; padding: 20px 15px 80px;
-        }
-        header { text-align: center; padding: 20px 0 10px; }
-        header h1 {
-            font-size: 2em; letter-spacing: 6px;
-            text-shadow: var(--glow);
-            border: 2px solid var(--green);
-            display: inline-block; padding: 10px 30px;
-            background: rgba(0,20,0,0.9);
-        }
-
-        /* NAV TABS */
-        .nav-tabs {
-            display: flex; flex-wrap: wrap; gap: 0;
-            border-bottom: 2px solid var(--green);
-            margin: 20px 0 0;
-            background: rgba(0,10,0,0.9);
-        }
-        .nav-tab {
-            flex: 1; min-width: 100px;
-            padding: 12px 8px; text-align: center;
-            cursor: pointer; font-family: var(--font);
-            font-size: 0.75em; letter-spacing: 2px;
-            color: var(--green); background: transparent;
-            border: none; border-right: 1px solid rgba(0,255,0,0.3);
-            transition: 0.2s;
-        }
-        .nav-tab:last-child { border-right: none; }
-        .nav-tab:hover { background: var(--dim); }
-        .nav-tab.active {
-            background: var(--green); color: #000;
-            font-weight: bold;
-        }
-        .tab-content { display: none; padding-top: 20px; }
-        .tab-content.active { display: block; }
-
-        /* SECTION TITLES */
-        .section-title {
-            font-size: 1.2em; letter-spacing: 4px;
-            border-bottom: 1px solid var(--green);
-            padding-bottom: 5px; margin: 25px 0 15px;
-            text-shadow: var(--glow);
-        }
-
-        /* CARDS */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 12px;
-        }
-        .card {
-            border: 1px solid var(--green);
-            background: var(--card);
-            padding: 15px;
-            text-decoration: none;
-            color: var(--green);
-            transition: 0.2s;
-            display: block;
-        }
-        .card:hover {
-            box-shadow: var(--glow);
-            transform: translateY(-2px);
-            background: var(--dim);
-        }
-        .card h3 { font-size: 1em; margin-bottom: 5px; letter-spacing: 2px; }
-        .card p { font-size: 0.8em; opacity: 0.7; margin: 3px 0; }
-        .card .systems { font-size: 0.75em; color: #0a0; margin-top: 5px; }
-
-        /* VAULT CARDS */
-        .vault-card {
-            border: 1px solid var(--green);
-            background: var(--card);
-            padding: 20px;
-            transition: 0.2s;
-        }
-        .vault-card:hover {
-            box-shadow: var(--glow);
-            transform: translateY(-2px);
-            background: var(--dim);
-        }
-        .vault-card h3 { font-size: 1em; letter-spacing: 2px; margin-bottom: 8px; }
-        .vault-card .format { font-size: 0.8em; color: #0a0; margin: 4px 0; }
-        .vault-card .safety {
-            display: inline-block; margin-top: 8px;
-            border: 1px solid var(--green); padding: 3px 8px;
-            font-size: 0.7em; letter-spacing: 1px;
-        }
-        .vault-card a {
-            display: inline-block; margin-top: 10px;
-            color: var(--green); font-size: 0.8em;
-            text-decoration: underline;
-        }
-
-        /* DELISTED CARDS */
-        .delisted-card {
-            border: 1px solid var(--orange);
-            background: rgba(40,20,0,0.85);
-            padding: 15px; transition: 0.2s;
-        }
-        .delisted-card:hover {
-            box-shadow: 0 0 10px var(--orange), 0 0 20px rgba(255,136,0,0.3);
-            transform: translateY(-2px);
-        }
-        .delisted-card .badge {
-            display: inline-block; font-size: 0.65em;
-            border: 1px solid var(--orange); color: var(--orange);
-            padding: 2px 6px; margin-bottom: 6px; letter-spacing: 1px;
-        }
-        .delisted-card h3 { font-size: 0.95em; color: var(--orange); margin-bottom: 4px; }
-        .delisted-card .reason { font-size: 0.8em; opacity: 0.7; }
-        .delisted-card a {
-            display: inline-block; margin-top: 8px;
-            color: var(--orange); font-size: 0.75em; text-decoration: underline;
-        }
-
-        /* FLASH GAMES */
-        .flash-card {
-            border: 1px solid #0ff;
-            background: rgba(0,20,20,0.85);
-            padding: 15px; transition: 0.2s;
-            display: block; color: inherit; text-decoration: none;
-        }
-        .flash-card:hover {
-            box-shadow: 0 0 10px #0ff, 0 0 20px rgba(0,255,255,0.3);
-            transform: translateY(-2px);
-        }
-        .flash-card h3 { font-size: 0.95em; color: #0ff; margin-bottom: 4px; }
-        .flash-card .cat { font-size: 0.75em; color: #0aa; }
-
-        /* HASH VERIFIER */
-        .hash-box {
-            border: 1px solid var(--green);
-            background: var(--card);
-            padding: 25px; margin: 15px 0;
-        }
-        .hash-box h3 {
-            font-size: 1.1em; letter-spacing: 3px;
-            margin-bottom: 15px; text-shadow: var(--glow);
-        }
-        .hash-box label {
-            display: block; font-size: 0.8em;
-            letter-spacing: 1px; margin-bottom: 5px; opacity: 0.8;
-        }
-        .hash-box input[type="file"],
-        .hash-box input[type="text"] {
-            width: 100%; padding: 10px; margin-bottom: 12px;
-            background: rgba(0,0,0,0.8); border: 1px solid var(--green);
-            color: var(--green); font-family: var(--font); font-size: 0.85em;
-        }
-        .hash-box input[type="text"]::placeholder { color: rgba(0,255,0,0.3); }
-        .hash-box input:focus { outline: none; box-shadow: var(--glow); }
-        .hash-result {
-            margin-top: 15px; padding: 15px;
-            border: 1px solid var(--green); background: rgba(0,0,0,0.5);
-            font-size: 0.85em; display: none;
-        }
-        .hash-result.show { display: block; }
-        .hash-result .label { opacity: 0.6; font-size: 0.8em; }
-        .hash-result .value { word-break: break-all; margin: 3px 0 8px; }
-        .hash-status {
-            display: inline-block; padding: 4px 12px;
-            font-size: 0.8em; letter-spacing: 2px; font-weight: bold;
-            border: 1px solid;
-        }
-        .hash-status.clean { color: var(--green); border-color: var(--green); }
-        .hash-status.warning { color: var(--red); border-color: var(--red); }
-
-        /* Browser-playable arcade box */
-        .arcade-box {
-            border: 1px solid var(--cyan);
-            background: var(--card);
-            padding: 20px; margin: 15px 0;
-        }
-        .arcade-box h3 { color: var(--cyan); font-size: 1em; letter-spacing: 2px; margin-bottom: 10px; }
-        .arcade-box p { font-size: 0.8em; opacity: 0.7; margin: 4px 0; }
-        .arcade-box a { color: #0ff; font-size: 0.8em; }
-        .arcade-box .stat {
-            font-size: 1.4em; color: #0ff; margin: 10px 0;
-            letter-spacing: 2px; font-weight: bold;
-        }
-
-        /* GUIDE BOX */
-        .guide-box {
-            border: 1px solid var(--green);
-            background: var(--card);
-            padding: 20px; margin: 15px 0;
-        }
-        .guide-box h3 { font-size: 1em; margin-bottom: 10px; letter-spacing: 2px; }
-        .guide-box ol, .guide-box ul { padding-left: 20px; font-size: 0.85em; }
-        .guide-box li { margin: 6px 0; }
-        .rec-list { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-        .rec-item {
-            border: 1px solid var(--green); padding: 8px 12px;
-            font-size: 0.8em; background: var(--dim);
-        }
-
-        /* FOOTER */
-        footer {
-            text-align: center; padding: 30px 0 10px;
-            border-top: 1px solid rgba(0,255,0,0.3); margin-top: 30px;
-        }
-        footer a { color: var(--green); text-decoration: none; margin: 0 12px; font-size: 0.85em; }
-        footer a:hover { text-decoration: underline; }
-
-        @media (max-width: 768px) {
-            header h1 { font-size: 1.2em; letter-spacing: 3px; padding: 8px 15px; }
-            .cards-grid { grid-template-columns: 1fr; }
-            .nav-tab { font-size: 0.6em; padding: 10px 4px; min-width: 60px; }
-        }
+        :root { --green:#0f0; --dim:rgba(0,255,0,.12); --bg:#000; --card:rgba(0,18,0,.88); --border:rgba(0,255,0,.28); --glow:0 0 10px #0f0,0 0 24px rgba(0,255,0,.18); --font:'Courier New',monospace; --red:#ff5c5c; --orange:#ff9f43; --cyan:#52ffff; --muted:rgba(0,255,0,.62); }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--bg); color:var(--green); font-family:var(--font); min-height:100vh; }
+        canvas#matrix-bg,.scanlines { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; }
+        canvas#matrix-bg { z-index:0; } .scanlines { z-index:1; background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0,rgba(0,0,0,.14) 1px,transparent 1px,transparent 3px); }
+        .container { position:relative; z-index:2; max-width:1240px; margin:0 auto; padding:20px 14px 60px; }
+        header { text-align:center; margin-bottom:18px; }
+        header h1 { display:inline-block; padding:12px 28px; border:2px solid var(--green); background:rgba(0,20,0,.92); letter-spacing:5px; text-shadow:var(--glow); font-size:clamp(1.4rem,4vw,2.2rem); }
+        .lead { margin-top:10px; color:var(--muted); font-size:.82rem; letter-spacing:1px; }
+        .nav-tabs { display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 0; }
+        .nav-tab { flex:1 1 120px; padding:11px 10px; background:rgba(0,12,0,.9); color:var(--green); border:1px solid var(--border); cursor:pointer; font:inherit; font-size:.72rem; letter-spacing:1px; text-transform:uppercase; }
+        .nav-tab:hover,.nav-tab.active { background:var(--green); color:#000; box-shadow:var(--glow); }
+        .tab-content { display:none; padding-top:18px; } .tab-content.active { display:block; }
+        .section-title { margin:22px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); font-size:1rem; letter-spacing:3px; text-shadow:var(--glow); }
+        .note { background:rgba(0,0,0,.65); border:1px solid var(--border); color:var(--muted); padding:10px 12px; font-size:.74rem; margin-bottom:14px; }
+        .note.warn { border-color:rgba(255,159,67,.45); color:#ffd3a3; }
+        .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+        .card,.vault-card,.delisted-card,.flash-card,.guide-box,.scan-section,.arcade-box,.hash-box { border:1px solid var(--border); background:var(--card); padding:15px; }
+        .card,.vault-card,.flash-card { display:block; color:var(--green); text-decoration:none; transition:.18s; }
+        .card:hover,.vault-card:hover,.flash-card:hover,.delisted-card:hover { transform:translateY(-2px); box-shadow:var(--glow); background:rgba(0,35,0,.85); }
+        .card h3,.vault-card h3,.flash-card h3,.delisted-card h3,.guide-box h3,.scan-section h3,.arcade-box h3,.hash-box h3 { font-size:.95rem; letter-spacing:1px; margin-bottom:6px; }
+        .card p,.vault-card .format,.flash-card .cat,.delisted-card .reason,.guide-box li,.guide-box p,.arcade-box p { font-size:.78rem; color:var(--muted); line-height:1.5; }
+        .systems,.vault-card .safety { margin-top:8px; font-size:.72rem; color:#7dff7d; }
+        .vault-card .safety { display:inline-block; padding:2px 7px; border:1px solid var(--border); }
+        .delisted-card { border-color:rgba(255,159,67,.45); background:rgba(35,18,0,.55); }
+        .delisted-card h3,.delisted-card a,.arcade-box a { color:var(--orange); }
+        .delisted-card .badge { display:inline-block; margin-bottom:6px; padding:2px 6px; border:1px solid rgba(255,159,67,.55); color:var(--orange); font-size:.66rem; }
+        .flash-card { border-color:rgba(82,255,255,.4); background:rgba(0,20,24,.75); } .flash-card h3 { color:var(--cyan); }
+        .arcade-box { border-color:rgba(82,255,255,.4); } .arcade-box h3,.arcade-box .stat { color:var(--cyan); } .arcade-box .stat { font-size:1.25rem; margin:10px 0; font-weight:bold; }
+        .guide-box ol,.guide-box ul { padding-left:20px; } .guide-box li { margin:6px 0; }
+        .rec-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; } .rec-item { border:1px solid var(--border); padding:7px 10px; font-size:.74rem; color:var(--muted); background:rgba(0,25,0,.5); }
+        .scan-btn { background:#001100; color:var(--green); border:1px solid var(--green); padding:12px 22px; font:inherit; letter-spacing:2px; cursor:pointer; text-transform:uppercase; }
+        .scan-btn:hover { background:var(--green); color:#000; box-shadow:var(--glow); }
+        .scan-section { margin:14px 0; } .scan-section h3 { border-bottom:1px solid var(--border); padding-bottom:6px; margin-bottom:10px; }
+        .emu-bar-container { display:flex; align-items:center; gap:8px; margin:4px 0; padding:3px 4px; }
+        .emu-bar-name { width:140px; font-size:.78rem; flex-shrink:0; } .emu-bar-track { flex:1; height:18px; background:#001100; border:1px solid var(--border); overflow:hidden; } .emu-bar-fill { height:100%; transition:width .6s; }
+        .emu-bar-score { width:42px; text-align:right; font-size:.82rem; font-weight:bold; } .emu-bar-status { width:115px; font-size:.66rem; color:var(--muted); }
+        .tier-header { margin:14px 0 6px; padding:4px 6px; border-bottom:1px solid var(--border); font-size:.68rem; color:var(--muted); letter-spacing:2px; }
+        .preset-card { border:1px solid var(--border); background:rgba(0,18,0,.8); padding:12px; } .preset-card.match { border-color:var(--green); box-shadow:var(--glow); }
+        .note-text { font-size:.68rem; color:var(--muted); margin-left:148px; margin-bottom:3px; }
+        .disclaimer-box { border:1px solid rgba(255,92,92,.45); background:rgba(20,0,0,.5); color:#ffb0b0; padding:10px 12px; font-size:.72rem; line-height:1.5; }
+        .hash-box label { display:block; margin:10px 0 5px; font-size:.75rem; color:var(--muted); }
+        .hash-box input[type="file"], .hash-box input[type="text"] { width:100%; padding:10px; background:#001100; border:1px solid var(--border); color:var(--green); font:inherit; }
+        .hash-result { display:none; margin-top:14px; padding:12px; border:1px solid var(--border); background:rgba(0,0,0,.45); }
+        .hash-result.show { display:block; } .hash-result .label { font-size:.72rem; color:var(--muted); } .hash-result .value { word-break:break-all; margin:2px 0 10px; font-size:.8rem; }
+        .hash-status { display:inline-block; padding:4px 10px; border:1px solid; font-size:.75rem; letter-spacing:1px; } .hash-status.clean { color:var(--green); border-color:var(--green); } .hash-status.warning { color:var(--red); border-color:var(--red); }
+        footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--border); text-align:center; }
+        footer a { color:var(--green); text-decoration:none; margin:0 6px; font-size:.74rem; } footer a:hover { text-decoration:underline; }
+        .foot-meta { margin-top:10px; font-size:.68rem; color:var(--muted); line-height:1.5; }
+        @media (max-width:700px) { .emu-bar-container { flex-wrap:wrap; } .emu-bar-name,.emu-bar-status { width:100%; } .note-text { margin-left:0; } }
     </style>
-    <link rel="stylesheet" href="/tools/assets/theme.css">
 </head>
 <body>
     <canvas id="matrix-bg"></canvas>
     <div class="scanlines"></div>
-
     <div class="container">
         <header>
             <h1>RETRO HUB</h1>
+            <div class="lead">Emulatory, archiwa, narzędzia i skan kompatybilności // MATRIXHUNT</div>
         </header>
 
         <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showTab('emulators')" data-i18n="retro.emulators">EMULATORS</button>
-            <button class="nav-tab" onclick="showTab('roms')" data-i18n="retro.roms">ROM SOURCES</button>
-            <button class="nav-tab" onclick="showTab('vault')" data-i18n="retro.vault">ARCHIVE.VAULT</button>
-            <button class="nav-tab" onclick="showTab('delisted')" data-i18n="retro.delisted">DELISTED STEAM</button>
-            <button class="nav-tab" onclick="showTab('flash')" data-i18n="retro.flash">FLASH GAMES</button>
-            <button class="nav-tab" onclick="showTab('hash')" data-i18n="retro.hash">HASH VERIFIER</button>
-            <button class="nav-tab" onclick="showTab('cyie')" data-i18n="retro.cyie">CAN YOU EMULATE IT?</button>
+            <button class="nav-tab active" onclick="showTab('emulators', this)" data-i18n="retro.emulators">EMULATORS</button>
+            <button class="nav-tab" onclick="showTab('roms', this)" data-i18n="retro.roms">ROM SOURCES</button>
+            <button class="nav-tab" onclick="showTab('vault', this)" data-i18n="retro.vault">ARCHIVE.VAULT</button>
+            <button class="nav-tab" onclick="showTab('delisted', this)" data-i18n="retro.delisted">DELISTED STEAM</button>
+            <button class="nav-tab" onclick="showTab('flash', this)" data-i18n="retro.flash">FLASH GAMES</button>
+            <button class="nav-tab" onclick="showTab('hash', this)" data-i18n="retro.hash">HASH VERIFIER</button>
+            <button class="nav-tab" onclick="showTab('cyie', this)" data-i18n="retro.cyie">CAN YOU EMULATE IT?</button>
         </div>
 
-        <!-- TAB 1: EMULATORS -->
         <div id="tab-emulators" class="tab-content active">
             <div class="section-title">// PC EMULATORS</div>
             <div class="cards-grid">
@@ -399,30 +107,25 @@
             <div class="guide-box">
                 <h3>Controller Setup Guide</h3>
                 <ol>
-                    <li>Connect your controller via USB or Bluetooth</li>
-                    <li>On Windows: Controllers are usually auto-detected. Use x360ce if needed.</li>
-                    <li>On Linux: Use 'jstest /dev/input/js0' to verify detection</li>
-                    <li>On Android: Bluetooth pair then configure in emulator settings</li>
-                    <li>Map buttons in each emulator's input settings</li>
-                    <li>Test with pad_test.html in the MatrixHunt dashboard</li>
+                    <li>Connect your controller via USB or Bluetooth.</li>
+                    <li>Windows: zwykle wykrywa automatycznie; w razie problemów x360ce.</li>
+                    <li>Linux: sprawdź `jstest /dev/input/js0`.</li>
+                    <li>Android: sparuj Bluetooth i ustaw w emulatorze.</li>
+                    <li>Mapuj przyciski w ustawieniach emulatora.</li>
+                    <li>Przetestuj w <a href="/pad">/pad</a>.</li>
                 </ol>
-                <h3>Recommended Controllers</h3>
+                <h3 style="margin-top:12px;">Recommended Controllers</h3>
                 <div class="rec-list">
-                    <div class="rec-item">Xbox Series Controller (best compatibility)</div>
-                    <div class="rec-item">PS5 DualSense (good with Steam Input)</div>
-                    <div class="rec-item">8BitDo Pro 2 (best for retro gaming)</div>
+                    <div class="rec-item">Xbox Series Controller</div>
+                    <div class="rec-item">PS5 DualSense</div>
+                    <div class="rec-item">8BitDo Pro 2</div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 2: ROM SOURCES -->
         <div id="tab-roms" class="tab-content">
             <div class="section-title">// LEGAL ROM SOURCES</div>
-            <div style="background:rgba(0,0,0,0.9);border:1px solid var(--green);padding:8px;margin-bottom:15px;font-size:0.7em;color:var(--green);opacity:0.8;">
-                DISCLAIMER: Only download ROMs for games you legally own.
-                This software does NOT host or distribute copyrighted content.
-                All links point to third-party sites. Users are responsible for complying with local laws.
-            </div>
+            <div class="note warn">Pobieraj tylko to, do czego masz prawa. To nie jest hosting plików; linki prowadzą do zewnętrznych serwisów. Zawartość archiwów może być niezaufana – weryfikuj przed użyciem.</div>
             <div class="cards-grid">
                 <a class="card" href="https://archive.org/details/software" target="_blank" rel="noopener"><h3>Archive.org Software</h3><p>Legal ROMs, homebrew & software library</p></a>
                 <a class="card" href="https://archive.org/details/homebrew" target="_blank" rel="noopener"><h3>Archive.org Homebrew</h3><p>Homebrew games and demos</p></a>
@@ -433,188 +136,86 @@
             </div>
         </div>
 
-        <!-- TAB 3: ARCHIVE.VAULT -->
         <div id="tab-vault" class="tab-content">
             <div class="section-title">// ARCHIVE.VAULT - SEARCH & PRESERVATION</div>
-            <div style="background:rgba(0,0,0,0.9);border:1px solid var(--green);padding:8px;margin-bottom:15px;font-size:0.7em;color:var(--green);opacity:0.8;">
-                All links go to working Archive.org search results. Only download games you legally own.
-            </div>
+            <div class="note">Linki do wyszukiwania w Archive.org. Sprawdzaj legalność i bezpieczeństwo przed pobraniem.</div>
             <div class="cards-grid">
-                <a class="vault-card" href="https://archive.org/search?query=playstation+1+roms&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener" style="text-decoration:none;color:var(--green);">
-                    <h3>PlayStation 1</h3>
-                    <div class="format">SEARCH: PS1 ROMs</div>
-                    <div class="safety">WORKING</div>
-                </a>
-                <a class="vault-card" href="https://archive.org/search?query=ps2+iso&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener" style="text-decoration:none;color:var(--green);">
-                    <h3>PlayStation 2</h3>
-                    <div class="format">SEARCH: PS2 ISOs</div>
-                    <div class="safety">WORKING</div>
-                </a>
-                <a class="vault-card" href="https://archive.org/search?query=psp+roms&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener" style="text-decoration:none;color:var(--green);">
-                    <h3>PlayStation Portable</h3>
-                    <div class="format">SEARCH: PSP ROMs</div>
-                    <div class="safety">WORKING</div>
-                </a>
-                <a class="vault-card" href="https://archive.org/search?query=xbox+iso&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener" style="text-decoration:none;color:var(--green);">
-                    <h3>Xbox</h3>
-                    <div class="format">SEARCH: Xbox ISOs</div>
-                    <div class="safety">WORKING</div>
-                </a>
-                <a class="vault-card" href="https://archive.org/search?query=nintendo+gamecube+iso&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener" style="text-decoration:none;color:var(--green);">
-                    <h3>GameCube</h3>
-                    <div class="format">SEARCH: GC ISOs</div>
-                    <div class="safety">WORKING</div>
-                </a>
-                <a class="vault-card" href="https://archive.org/search?query=wii+iso&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener" style="text-decoration:none;color:var(--green);">
-                    <h3>Wii</h3>
-                    <div class="format">SEARCH: Wii ISOs</div>
-                    <div class="safety">WORKING</div>
-                </a>
-                <a class="vault-card" href="https://archive.org/search?query=sega+dreamcast+iso&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener" style="text-decoration:none;color:var(--green);">
-                    <h3>Dreamcast</h3>
-                    <div class="format">SEARCH: DC ISOs</div>
-                    <div class="safety">WORKING</div>
-                </a>
-                <a class="vault-card" href="https://archive.org/details/tosec" target="_blank" rel="noopener" style="text-decoration:none;color:var(--green);">
-                    <h3>TOSEC Archive</h3>
-                    <div class="format">Old School Emulation Center</div>
-                    <div class="safety">WORKING</div>
-                </a>
-                <a class="vault-card" href="https://archive.org/details/internetarcade" target="_blank" rel="noopener" style="text-decoration:none;color:var(--green);">
-                    <h3>Internet Arcade</h3>
-                    <div class="format">PLAYABLE in browser</div>
-                    <div class="safety">WORKING - PLAY DIRECTLY</div>
-                </a>
+                <a class="vault-card" href="https://archive.org/search?query=playstation+1+roms&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener"><h3>PlayStation 1</h3><div class="format">SEARCH: PS1 ROMs</div><div class="safety">SEARCH LINK</div></a>
+                <a class="vault-card" href="https://archive.org/search?query=ps2+iso&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener"><h3>PlayStation 2</h3><div class="format">SEARCH: PS2 ISOs</div><div class="safety">SEARCH LINK</div></a>
+                <a class="vault-card" href="https://archive.org/search?query=psp+roms&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener"><h3>PlayStation Portable</h3><div class="format">SEARCH: PSP ROMs</div><div class="safety">SEARCH LINK</div></a>
+                <a class="vault-card" href="https://archive.org/search?query=xbox+iso&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener"><h3>Xbox</h3><div class="format">SEARCH: Xbox ISOs</div><div class="safety">SEARCH LINK</div></a>
+                <a class="vault-card" href="https://archive.org/search?query=nintendo+gamecube+iso&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener"><h3>GameCube</h3><div class="format">SEARCH: GC ISOs</div><div class="safety">SEARCH LINK</div></a>
+                <a class="vault-card" href="https://archive.org/search?query=wii+iso&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener"><h3>Wii</h3><div class="format">SEARCH: Wii ISOs</div><div class="safety">SEARCH LINK</div></a>
+                <a class="vault-card" href="https://archive.org/search?query=sega+dreamcast+iso&and%5B%5D=mediatype%3A%22software%22" target="_blank" rel="noopener"><h3>Dreamcast</h3><div class="format">SEARCH: DC ISOs</div><div class="safety">SEARCH LINK</div></a>
+                <a class="vault-card" href="https://archive.org/details/tosec" target="_blank" rel="noopener"><h3>TOSEC Archive</h3><div class="format">Old School Emulation Center</div><div class="safety">ARCHIVE.ORG</div></a>
+                <a class="vault-card" href="https://archive.org/details/internetarcade" target="_blank" rel="noopener"><h3>Internet Arcade</h3><div class="format">Playable in browser</div><div class="safety">PLAY IN BROWSER</div></a>
             </div>
         </div>
 
-        <!-- TAB 4: DELISTED STEAM -->
         <div id="tab-delisted" class="tab-content">
             <div class="section-title">// DELISTED STEAM - GONE BUT NOT FORGOTTEN</div>
-            <p style="font-size:0.8em;opacity:0.6;margin-bottom:5px;">Legendary games removed from Steam due to license expirations, publisher decisions, or platform exclusivity deals.</p>
-            <div style="background:rgba(0,0,0,0.9);border:1px solid var(--orange);padding:8px;margin-bottom:15px;font-size:0.7em;color:var(--orange);opacity:0.8;">
-                DISCLAIMER: This section provides information about delisted games for archival and preservation purposes only.
-                These games are NOT hosted by this software. Users are responsible for ensuring they have legal rights to access these games.
-                All trademarks and copyrights belong to their respective owners.
-            </div>
+            <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px;">Gry usunięte ze Steama: licencje, wydawcy, wyłączność, zastąpienia edycjami.</p>
+            <div class="note warn">Sekcja informacyjna/archiwalna. MatrixHunt nie hostuje tych gier. Użytkownik odpowiada za legalność dostępu.</div>
             <div class="cards-grid" id="delisted-grid"></div>
         </div>
 
-        <!-- TAB 5: FLASH GAMES -->
         <div id="tab-flash" class="tab-content">
             <div class="section-title">// FLASH GAME ARCHIVE</div>
-
             <div class="arcade-box">
                 <h3>PLAY ARCADE GAMES IN YOUR BROWSER</h3>
                 <div class="stat">NO GAME FILE DOWNLOAD REQUIRED</div>
-                <p>Pick a game in the built-in player. It streams from Internet Archive and opens there without installing a launcher.</p>
-                <p style="margin-top:10px;">
-                    <a href="/flash">OPEN THE IN-APP ARCADE &raquo;</a>
-                </p>
+                <p>Wybierz grę we wbudowanym playerze. Źródła są zewnętrzne/archiwalne; nie instaluj losowych launcherów.</p>
+                <p style="margin-top:10px;"><a href="/flash">OPEN THE IN-APP ARCADE &raquo;</a></p>
             </div>
-
-            <div class="section-title" style="margin-top:25px;">// PLAY IN YOUR BROWSER</div>
-            <a class="card" href="/flash"><h3>OPEN THE IN-APP ARCADE</h3><p>Choose an arcade game and play it here without downloading a game file.</p></a>
+            <div class="section-title" style="margin-top:22px;">// PLAY IN YOUR BROWSER</div>
+            <a class="card" href="/flash"><h3>OPEN THE IN-APP ARCADE</h3><p>Otwórz arkadę MatrixHunt i graj bez pobierania pliku gry.</p></a>
         </div>
 
-        <!-- TAB 6: HASH VERIFIER -->
         <div id="tab-hash" class="tab-content">
-            <div class="section-title">// STEALTH HASH VERIFIER</div>
+            <div class="section-title">// FILE HASH VERIFIER</div>
             <div class="hash-box">
-                <h3>VERIFY YOUR ROMS</h3>
-                <p style="font-size:0.8em;opacity:0.6;margin-bottom:15px;">Compare your ROM dumps against Redump / No-Intro checksums. Runs entirely in your browser - no files leave your machine.</p>
-
-                <label>SELECT ROM FILE (.iso, .bin, .cue, .gcm, .zip, .swf)</label>
-                <input type="file" id="hash-file" accept=".iso,.bin,.cue,.gcm,.zip,.swf,.rom,.nes,.smd,.gen,.gba,.nds,.3ds,.pbp,.chd,.gdi,.cdi,.xex">
-
-                <label>EXPECTED HASH (SHA-1 or MD5)</label>
-                <input type="text" id="hash-input" placeholder="Paste SHA-1 or MD5 from Redump/No-Intro">
-
-                <button onclick="verifyHash()" style="width:100%;padding:12px;background:var(--green);color:var(--bg);border:none;font-family:var(--font);font-size:0.9em;letter-spacing:3px;cursor:pointer;font-weight:bold;margin-top:5px;" data-i18n="retro.verify">VERIFY HASH</button>
-
-                <div class="hash-result" id="hash-result">
-                    <div><span class="label">FILE NAME:</span></div>
-                    <div class="value" id="hr-name">-</div>
-                    <div><span class="label">FILE SIZE:</span></div>
-                    <div class="value" id="hr-size">-</div>
-                    <div><span class="label">ALGORITHM:</span></div>
-                    <div class="value" id="hr-algo">-</div>
-                    <div><span class="label">CALCULATED HASH:</span></div>
-                    <div class="value" id="hr-calc">-</div>
-                    <div><span class="label">STATUS:</span></div>
+                <h3>Verify ROM / File Integrity</h3>
+                <p style="font-size:.76rem;color:var(--muted);margin-bottom:10px;">Oblicza MD5/SHA-1/SHA-256 lokalnie w przeglądarce. Plik nie jest wysyłany na serwer.</p>
+                <label for="hash-file">Select file:</label>
+                <input type="file" id="hash-file">
+                <label for="hash-input">Expected hash (MD5, SHA-1, or SHA-256):</label>
+                <input type="text" id="hash-input" placeholder="e.g. d41d8cd98f00b204e9800998ecf8427e">
+                <button class="scan-btn" style="font-size:.8rem;padding:10px 20px;" onclick="verifyHash()">VERIFY HASH</button>
+                <div id="hash-result" class="hash-result">
+                    <div class="label">FILE NAME</div><div class="value" id="hr-name">-</div>
+                    <div class="label">FILE SIZE</div><div class="value" id="hr-size">-</div>
+                    <div class="label">ALGORITHM</div><div class="value" id="hr-algo">-</div>
+                    <div class="label">CALCULATED HASH</div><div class="value" id="hr-calc">-</div>
                     <div id="hr-status"></div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 7: CAN YOU EMULATE IT? -->
         <div id="tab-cyie" class="tab-content">
-            <div class="scan-section" style="text-align:center; border-color:var(--border); padding:30px;">
-                <h2 style="color:var(--green); letter-spacing:6px; font-size:1.6em; margin-bottom:8px;">CAN YOU EMULATE IT?</h2>
-                <p style="font-size:0.8em; opacity:0.6; margin-bottom:20px;">Smart Hardware Scan // Emulator Compatibility Check // No Plugin Required</p>
+            <div class="scan-section" style="text-align:center;padding:28px;">
+                <h2 style="letter-spacing:5px;font-size:clamp(1.2rem,4vw,1.8rem);margin-bottom:8px;">CAN YOU EMULATE IT?</h2>
+                <p style="font-size:.78rem;color:var(--muted);margin-bottom:18px;">Smart Hardware Scan // Emulator Compatibility Check // No Plugin Required</p>
                 <button id="btn-scan" class="scan-btn" onclick="runCYIEScan()" data-i18n="retro.scan">SCAN MY HARDWARE</button>
             </div>
-
             <div id="cyie-results" style="display:none;">
-
-                <!-- DETECTED HARDWARE -->
-                <div class="scan-section">
-                    <h3>DETECTED HARDWARE</h3>
-                    <div id="cyie-hardware"></div>
-                </div>
-
-                <!-- COMPATIBILITY MATRIX -->
-                <div class="scan-section">
-                    <h3>EMULATOR COMPATIBILITY</h3>
-                    <div id="cyie-matrix"></div>
-                </div>
-
-                <!-- RECOMMENDED PROFILE -->
-                <div class="scan-section">
-                    <h3>RECOMMENDED SETTINGS</h3>
-                    <div id="cyie-recommended"></div>
-                </div>
-
-                <!-- PRESET PROFILES -->
-                <div class="scan-section">
-                    <h3>HARDWARE PRESETS</h3>
-                    <div id="cyie-presets"></div>
-                </div>
-
-                <!-- ACTIONS -->
-                <div style="text-align:center; margin:15px 0;">
-                    <button onclick="exportCYIEProfile()" class="scan-btn" style="font-size:0.8em; padding:10px 25px; margin:0 5px;" data-i18n="retro.export">EXPORT PROFILE</button>
-                    <button onclick="copyCYIEToClipboard()" class="scan-btn" style="font-size:0.8em; padding:10px 25px; margin:0 5px;" data-i18n="retro.copy">COPY TO CLIPBOARD</button>
+                <div class="scan-section"><h3>DETECTED HARDWARE</h3><div id="cyie-hardware"></div></div>
+                <div class="scan-section"><h3>EMULATOR COMPATIBILITY</h3><div id="cyie-matrix"></div></div>
+                <div class="scan-section"><h3>RECOMMENDED SETTINGS</h3><div id="cyie-recommended"></div></div>
+                <div class="scan-section"><h3>HARDWARE PRESETS</h3><div id="cyie-presets"></div></div>
+                <div style="text-align:center;margin:14px 0;">
+                    <button onclick="exportCYIEProfile()" class="scan-btn" style="font-size:.78rem;padding:10px 18px;margin:4px;" data-i18n="retro.export">EXPORT PROFILE</button>
+                    <button onclick="copyCYIEToClipboard()" class="scan-btn" style="font-size:.78rem;padding:10px 18px;margin:4px;" data-i18n="retro.copy">COPY TO CLIPBOARD</button>
                 </div>
             </div>
-
-            <!-- DISCLAIMER -->
             <div class="disclaimer-box">
-                DISCLAIMER: This scanner uses browser APIs (WebGL, Gamepad, Screen) to estimate hardware capabilities.
-                Actual emulator performance may vary depending on game, settings, and drivers.
-                Results are estimates, not guarantees. Hardware detection requires no plugins and runs entirely in your browser.
-                Uczciwe granice: RAM 0 = przeglądarka ukrywa (Firefox/Safari), RAM 8 GB = możliwy limit Chromium (możesz mieć więcej),
-                Vulkan pokazujemy jako UNKNOWN gdy przeglądarka nie wykrywa (to nie to samo co brak),
-                zamaskowany renderer GPU punktujemy jako szacowany, a nie zmierzony.
+                DISCLAIMER: Skan używa API przeglądarki (WebGL, Gamepad, Screen). Wyniki to szacunki, nie gwarancje.
+                RAM 0 = przeglądarka ukrywa; RAM 8 GB w Chromium może być limitem; Vulkan/WebGPU bywa UNKNOWN; zamaskowany renderer GPU jest szacowany.
             </div>
         </div>
 
         <footer>
-            <a href="/">HOME</a>
-            <a href="/offers">OFERTY</a>
-            <a href="/view">VIEW</a>
-            <a href="/db">DB</a>
-            <a href="/retro">RETRO</a>
-            <a href="/pad">PAD</a>
-            <a href="/wiki">WIKI</a>
-            <a href="/bookmarks">BOOKMARKS</a>
-            <a href="/flash">FLASH</a>
-            <a href="/uwagi">UWAGI</a>
-            <a href="/view#privacy">PRIVACY</a>
-            <div style="margin-top:10px; font-size:0.7em; opacity:0.4;">
-                MATRIXHUNT ULTIMATE v2.0 // License: CC BY-NC-SA 4.0 // Author: Arkadiusz Slowik<br>
-                This software is FREE. If someone is selling it, they are scammers.
-            </div>
+            <a href="/">HOME</a><a href="/offers">OFERTY</a><a href="/view">VIEW</a><a href="/db">DB</a><a href="/retro">RETRO</a><a href="/pad">PAD</a><a href="/wiki">WIKI</a><a href="/bookmarks">BOOKMARKS</a><a href="/flash">FLASH</a><a href="/uwagi">UWAGI</a><a href="/view#privacy">PRIVACY</a>
+            <div class="foot-meta">MATRIXHUNT ULTIMATE v2.0 // License: CC BY-NC-SA 4.0 // Author: Arkadiusz Slowik<br>This software is FREE. If someone is selling it, they are scammers.</div>
         </footer>
     </div>
 
@@ -622,18 +223,16 @@
     <script src="/tools/assets/hardware-detect.js"></script>
     <script src="/tools/scripts/site.js"></script>
     <script>
-        // Jeden deszcz z tools/site.js (było wklejone w 6 plików).
-        window.MH.matrixRain();
+        window.MH && window.MH.matrixRain && window.MH.matrixRain();
 
-        // Tab switching
-        function showTab(name) {
+        function showTab(name, btn) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('tab-' + name).classList.add('active');
-            event.currentTarget.classList.add('active');
+            const tab = document.getElementById('tab-' + name);
+            if (tab) tab.classList.add('active');
+            if (btn) btn.classList.add('active');
         }
 
-        // Delisted Steam games
         const delisted = [
             { title: "Spec Ops: The Line", reason: "License expired", appid: "204830" },
             { title: "Driver: San Francisco", reason: "License expired", appid: "334400" },
@@ -648,45 +247,89 @@
         ];
         const dg = document.getElementById('delisted-grid');
         delisted.forEach(g => {
-            const link = g.appid !== 'various'
-                ? 'https://store.steampowered.com/app/' + g.appid
-                : 'https://store.steampowered.com/app/12120';
-            dg.innerHTML += '<div class="delisted-card">' +
-                '<div class="badge">[DELISTED]</div>' +
-                '<h3>' + g.title + '</h3>' +
-                '<div class="reason">Reason: ' + g.reason + '</div>' +
-                '<a href="' + link + '" target="_blank" rel="noopener">Steam Store &raquo;</a>' +
-                '</div>';
+            const link = g.appid !== 'various' ? 'https://store.steampowered.com/app/' + g.appid : 'https://store.steampowered.com/app/12120';
+            dg.innerHTML += '<div class="delisted-card"><div class="badge">[DELISTED]</div><h3>' + g.title + '</h3><div class="reason">Reason: ' + g.reason + '</div><a href="' + link + '" target="_blank" rel="noopener">Steam Store &raquo;</a></div>';
         });
 
-        // ===== CAN YOU EMULATE IT? =====
-        let cyieHardware = null;
+        function toHex(buf) { return Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join(''); }
+        function detectAlgorithm(hash) {
+            const h = hash.toLowerCase().replace(/\s/g, '');
+            if (/^[0-9a-f]{32}$/.test(h)) return { algo: 'MD5', hex: h };
+            if (/^[0-9a-f]{40}$/.test(h)) return { algo: 'SHA-1', hex: h };
+            if (/^[0-9a-f]{64}$/.test(h)) return { algo: 'SHA-256', hex: h };
+            return null;
+        }
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+            return (bytes / 1073741824).toFixed(2) + ' GB';
+        }
+        function md5(bytes) {
+            const S = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+            const K = new Uint32Array(64);
+            for (let i = 0; i < 64; i++) K[i] = (Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296)) >>> 0;
+            const originalBitLength = bytes.length * 8;
+            const paddedLength = (((bytes.length + 8) >> 6) + 1) << 6;
+            const msg = new Uint8Array(paddedLength);
+            msg.set(bytes); msg[bytes.length] = 0x80;
+            const view = new DataView(msg.buffer);
+            view.setUint32(paddedLength - 8, originalBitLength >>> 0, true);
+            view.setUint32(paddedLength - 4, Math.floor(originalBitLength / 4294967296), true);
+            let a0=0x67452301,b0=0xefcdab89,c0=0x98badcfe,d0=0x10325476;
+            const rotl=(x,c)=>((x<<c)|(x>>>(32-c)))>>>0;
+            for (let chunk=0; chunk<paddedLength; chunk+=64) {
+                const M=new Uint32Array(16); for (let i=0;i<16;i++) M[i]=view.getUint32(chunk+i*4,true);
+                let A=a0,B=b0,C=c0,D=d0;
+                for (let i=0;i<64;i++) {
+                    let F,g;
+                    if (i<16){F=(B&C)|(~B&D);g=i;} else if (i<32){F=(D&B)|(~D&C);g=(5*i+1)%16;} else if (i<48){F=B^C^D;g=(3*i+5)%16;} else {F=C^(B|~D);g=(7*i)%16;}
+                    F=(F+A+K[i]+M[g])>>>0; A=D; D=C; C=B; B=(B+rotl(F,S[i]))>>>0;
+                }
+                a0=(a0+A)>>>0; b0=(b0+B)>>>0; c0=(c0+C)>>>0; d0=(d0+D)>>>0;
+            }
+            const out=new Uint8Array(16), outView=new DataView(out.buffer);
+            outView.setUint32(0,a0,true); outView.setUint32(4,b0,true); outView.setUint32(8,c0,true); outView.setUint32(12,d0,true);
+            return out;
+        }
+        async function verifyHash() {
+            const fileInput = document.getElementById('hash-file');
+            const hashInput = document.getElementById('hash-input').value.trim();
+            const resultDiv = document.getElementById('hash-result');
+            if (!fileInput.files.length) return alert('Select a file first.');
+            if (!hashInput) return alert('Enter an expected hash.');
+            const detected = detectAlgorithm(hashInput);
+            if (!detected) return alert('Invalid hash format. Expected MD5 (32 chars), SHA-1 (40 chars), or SHA-256 (64 chars).');
+            const file = fileInput.files[0];
+            document.getElementById('hr-name').textContent = file.name;
+            document.getElementById('hr-size').textContent = formatSize(file.size) + ' (' + file.size.toLocaleString() + ' bytes)';
+            document.getElementById('hr-algo').textContent = detected.algo;
+            const buffer = await file.arrayBuffer();
+            let calculated;
+            try {
+                calculated = detected.algo === 'MD5' ? toHex(md5(new Uint8Array(buffer))) : toHex(new Uint8Array(await crypto.subtle.digest(detected.algo === 'SHA-1' ? 'SHA-1' : 'SHA-256', buffer)));
+            } catch (err) { return alert('Could not hash this file: ' + err.message); }
+            document.getElementById('hr-calc').textContent = calculated;
+            const match = calculated === detected.hex;
+            document.getElementById('hr-status').innerHTML = '<span class="hash-status ' + (match ? 'clean' : 'warning') + '">' + (match ? 'STATUS: CLEAN - HASH MATCH' : 'STATUS: WARNING - HASH MISMATCH') + '</span>';
+            resultDiv.classList.add('show');
+        }
 
+        let cyieHardware = null;
         async function runCYIEScan() {
             const btn = document.getElementById('btn-scan');
-            const T = function (k, fb) {
-                try {
-                    if (window.mhLang && typeof window.mhLang.t === 'function') {
-                        var v = window.mhLang.t(k);
-                        if (v && v !== k) return v;
-                    }
-                } catch (e) {}
-                return fb;
-            };
+            const T = function (k, fb) { try { if (window.mhLang && typeof window.mhLang.t === 'function') { var v = window.mhLang.t(k); if (v && v !== k) return v; } } catch (e) {} return fb; };
             const pl = (document.documentElement.getAttribute('data-lang') === 'pl');
             btn.textContent = T('retro.scanning', pl ? 'SKANOWANIE...' : 'SCANNING...');
             btn.disabled = true;
-
             try {
                 const detector = new HardwareDetector();
                 cyieHardware = await detector.detectAll();
-
                 document.getElementById('cyie-results').style.display = 'block';
                 renderHardwareSummary(cyieHardware, 'cyie-hardware');
                 renderCompatibilityMatrix(cyieHardware, 'cyie-matrix');
                 renderRecommendedProfile(cyieHardware, 'cyie-recommended');
                 renderPresetProfiles(cyieHardware, 'cyie-presets');
-
                 btn.textContent = T('retro.rescan', pl ? 'SKANUJ PONOWNIE' : 'RESCAN');
                 btn.disabled = false;
             } catch (err) {
@@ -695,256 +338,42 @@
                 console.error('CYIE scan error:', err);
             }
         }
-
         function exportCYIEProfile() {
             if (!cyieHardware) return alert('Run a scan first.');
-
             const profile = {
-                version: '2.0',
-                generator: 'MATRIXHUNT ULTIMATE - Can You Emulate It?',
-                author: 'Arkadiusz Slowik',
-                license: 'CC BY-NC-SA 4.0',
-                timestamp: new Date().toISOString(),
-                hardware: {
-                    gpu: cyieHardware.gpu.renderer,
-                    gpuScore: cyieHardware.gpu.score,
-                    cpuCores: cyieHardware.cpu.cores,
-                    ramGB: cyieHardware.ram.gb,
-                    vulkan: cyieHardware.vulkan.supported,
-                    display: cyieHardware.display.width + 'x' + cyieHardware.display.height,
-                    browser: cyieHardware.browser.name + ' ' + cyieHardware.browser.version,
-                    os: cyieHardware.os.name + ' ' + cyieHardware.os.arch
-                },
+                version: '2.0', generator: 'MATRIXHUNT ULTIMATE - Can You Emulate It?', author: 'Arkadiusz Slowik', license: 'CC BY-NC-SA 4.0', timestamp: new Date().toISOString(),
+                hardware: { gpu: cyieHardware.gpu.renderer, gpuScore: cyieHardware.gpu.score, cpuCores: cyieHardware.cpu.cores, ramGB: cyieHardware.ram.gb, vulkan: cyieHardware.vulkan.supported, display: cyieHardware.display.width + 'x' + cyieHardware.display.height, browser: cyieHardware.browser.name + ' ' + cyieHardware.browser.version, os: cyieHardware.os.name + ' ' + cyieHardware.os.arch },
                 emulators: {}
             };
-
             for (const [key, emu] of Object.entries(EMULATOR_DB)) {
                 const score = scoreEmulator(emu, cyieHardware);
                 const status = getScoreStatus(score);
-                profile.emulators[key] = {
-                    name: emu.fullName || emu.name,
-                    emulator: emu.emulator,
-                    score: score,
-                    status: status.text,
-                    tier: emu.tier
-                };
+                profile.emulators[key] = { name: emu.fullName || emu.name, emulator: emu.emulator, score, status: status.text, tier: emu.tier };
             }
-
             const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'matrixhunt-cyie-profile-' + Date.now() + '.json';
-            a.click();
-            URL.revokeObjectURL(url);
+            const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'matrixhunt-cyie-profile-' + Date.now() + '.json'; a.click(); URL.revokeObjectURL(url);
         }
-
         function copyCYIEToClipboard() {
             if (!cyieHardware) return alert('Run a scan first.');
-
             let text = '=== CAN YOU EMULATE IT? - Hardware Report ===\n';
-            text += 'Generated: ' + new Date().toISOString() + '\n';
-            text += 'Author: Arkadiusz Slowik // License: CC BY-NC-SA 4.0\n\n';
-            text += '--- DETECTED HARDWARE ---\n';
+            text += 'Generated: ' + new Date().toISOString() + '\nAuthor: Arkadiusz Slowik // License: CC BY-NC-SA 4.0\n\n--- DETECTED HARDWARE ---\n';
             text += 'GPU: ' + cyieHardware.gpu.renderer + ' (score: ' + cyieHardware.gpu.score + '/100)\n';
             text += 'CPU: ' + cyieHardware.cpu.cores + ' cores [' + cyieHardware.cpu.tier + ']\n';
             text += 'RAM: ' + (cyieHardware.ram.gb > 0 ? cyieHardware.ram.gb + ' GB' : 'Unknown') + '\n';
             text += 'Display: ' + cyieHardware.display.width + 'x' + cyieHardware.display.height + '\n';
             text += 'Vulkan/WebGPU: ' + (cyieHardware.vulkan.supported ? 'YES' : 'NO') + '\n';
             text += 'Browser: ' + cyieHardware.browser.name + ' ' + cyieHardware.browser.version + '\n';
-            text += 'OS: ' + cyieHardware.os.name + ' ' + cyieHardware.os.arch + '\n\n';
-            text += '--- EMULATOR COMPATIBILITY ---\n';
-
+            text += 'OS: ' + cyieHardware.os.name + ' ' + cyieHardware.os.arch + '\n\n--- EMULATOR COMPATIBILITY ---\n';
             for (const [key, emu] of Object.entries(EMULATOR_DB)) {
-                const score = scoreEmulator(emu, cyieHardware);
-                const status = getScoreStatus(score);
-                const bar = '#'.repeat(Math.round(score / 5)) + '.'.repeat(20 - Math.round(score / 5));
-                text += emu.name.padEnd(18) + ' [' + bar + '] ' + String(score).padStart(3) + '% ' + status.text + '\n';
+                const score = scoreEmulator(emu, cyieHardware); const status = getScoreStatus(score);
+                text += emu.name.padEnd(15) + score.toString().padStart(3) + '/100  ' + status.text + '\n';
             }
-
-            text += '\n--- PRESET MATCH ---\n';
-            for (const [key, preset] of Object.entries(PRESET_PROFILES)) {
-                const diff = Math.abs(preset.hw.gpuScore - cyieHardware.gpu.score);
-                const match = diff < 15 ? ' <-- CLOSEST' : '';
-                text += preset.name.padEnd(14) + ' GPU:' + String(preset.hw.gpuScore).padStart(3) + '/100' + match + '\n';
-            }
-
-            text += '\n--- RECOMMENDED SETTINGS ---\n';
-            text += 'Renderer: ' + (cyieHardware.vulkan.supported ? 'Vulkan' : 'OpenGL') + '\n';
-            text += 'Resolution: ' + (cyieHardware.gpu.score >= 80 ? '4x native' : cyieHardware.gpu.score >= 60 ? '2x native' : '1x native') + '\n';
-            text += 'Shaders: ' + (cyieHardware.gpu.score >= 50 ? 'CRT-Royale' : 'CRT-Simple') + '\n';
-
-            text += '\n=== FREE FOREVER // CC BY-NC-SA 4.0 ===\n';
-            text += 'If someone is selling this, they are scammers.\n';
-
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Report copied to clipboard!');
-            }).catch(() => {
-                // Fallback
-                const ta = document.createElement('textarea');
-                ta.value = text;
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-                alert('Report copied to clipboard!');
-            });
-        }
-
-        // Hash Verifier
-        function formatSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
-            return (bytes / 1073741824).toFixed(2) + ' GB';
-        }
-
-        function hexToBytes(hex) {
-            const bytes = new Uint8Array(hex.length / 2);
-            for (let i = 0; i < hex.length; i += 2) {
-                bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-            }
-            return bytes;
-        }
-
-        function toHex(bytes) {
-            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
-        function detectAlgorithm(hash) {
-            const clean = hash.replace(/\s/g, '').toLowerCase();
-            if (/^[0-9a-f]{32}$/.test(clean)) return { algo: 'MD5', hex: clean };
-            if (/^[0-9a-f]{40}$/.test(clean)) return { algo: 'SHA-1', hex: clean };
-            if (/^[0-9a-f]{64}$/.test(clean)) return { algo: 'SHA-256', hex: clean };
-            return null;
-        }
-
-        // Web Crypto deliberately omits MD5, but most Redump/No-Intro ROM
-        // dumps are MD5, so it is implemented here directly.
-        function md5(bytes) {
-            const S = [
-                7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
-                5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
-                4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
-                6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
-            ];
-            const K = new Uint32Array(64);
-            for (let i = 0; i < 64; i++) {
-                K[i] = (Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296)) >>> 0;
-            }
-
-            const originalBitLength = bytes.length * 8;
-            const paddedLength = (((bytes.length + 8) >> 6) + 1) << 6;
-            const msg = new Uint8Array(paddedLength);
-            msg.set(bytes);
-            msg[bytes.length] = 0x80;
-
-            const view = new DataView(msg.buffer);
-            view.setUint32(paddedLength - 8, originalBitLength >>> 0, true);
-            view.setUint32(paddedLength - 4, Math.floor(originalBitLength / 4294967296), true);
-
-            let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
-
-            const rotl = (x, c) => ((x << c) | (x >>> (32 - c))) >>> 0;
-
-            for (let chunk = 0; chunk < paddedLength; chunk += 64) {
-                const M = new Uint32Array(16);
-                for (let i = 0; i < 16; i++) M[i] = view.getUint32(chunk + i * 4, true);
-
-                let A = a0, B = b0, C = c0, D = d0;
-
-                for (let i = 0; i < 64; i++) {
-                    let F, g;
-                    if (i < 16) {
-                        F = (B & C) | (~B & D);
-                        g = i;
-                    } else if (i < 32) {
-                        F = (D & B) | (~D & C);
-                        g = (5 * i + 1) % 16;
-                    } else if (i < 48) {
-                        F = B ^ C ^ D;
-                        g = (3 * i + 5) % 16;
-                    } else {
-                        F = C ^ (B | ~D);
-                        g = (7 * i) % 16;
-                    }
-                    F = (F + A + K[i] + M[g]) >>> 0;
-                    A = D;
-                    D = C;
-                    C = B;
-                    B = (B + rotl(F, S[i])) >>> 0;
-                }
-
-                a0 = (a0 + A) >>> 0;
-                b0 = (b0 + B) >>> 0;
-                c0 = (c0 + C) >>> 0;
-                d0 = (d0 + D) >>> 0;
-            }
-
-            const out = new Uint8Array(16);
-            const outView = new DataView(out.buffer);
-            outView.setUint32(0, a0, true);
-            outView.setUint32(4, b0, true);
-            outView.setUint32(8, c0, true);
-            outView.setUint32(12, d0, true);
-            return out;
-        }
-
-        async function verifyHash() {
-            const fileInput = document.getElementById('hash-file');
-            const hashInput = document.getElementById('hash-input').value.trim();
-            const resultDiv = document.getElementById('hash-result');
-
-            if (!fileInput.files.length) {
-                alert('Select a file first.');
-                return;
-            }
-            if (!hashInput) {
-                alert('Enter an expected hash.');
-                return;
-            }
-
-            const detected = detectAlgorithm(hashInput);
-            if (!detected) {
-                alert('Invalid hash format. Expected MD5 (32 chars), SHA-1 (40 chars), or SHA-256 (64 chars).');
-                return;
-            }
-
-            const file = fileInput.files[0];
-            document.getElementById('hr-name').textContent = file.name;
-            document.getElementById('hr-size').textContent = formatSize(file.size) + ' (' + file.size.toLocaleString() + ' bytes)';
-            document.getElementById('hr-algo').textContent = detected.algo;
-
-            const buffer = await file.arrayBuffer();
-            let calculated;
-            try {
-                if (detected.algo === 'MD5') {
-                    calculated = toHex(md5(new Uint8Array(buffer)));
-                } else {
-                    const hashBuffer = await crypto.subtle.digest(
-                        detected.algo === 'SHA-1' ? 'SHA-1' : 'SHA-256', buffer);
-                    calculated = toHex(new Uint8Array(hashBuffer));
-                }
-            } catch (err) {
-                alert('Could not hash this file: ' + err.message);
-                return;
-            }
-
-            document.getElementById('hr-calc').textContent = calculated;
-
-            const match = calculated === detected.hex;
-            document.getElementById('hr-status').innerHTML =
-                '<span class="hash-status ' + (match ? 'clean' : 'warning') + '">' +
-                (match ? 'STATUS: CLEAN - HASH MATCH' : 'STATUS: WARNING - HASH MISMATCH') +
-                '</span>';
-
-            resultDiv.classList.add('show');
+            navigator.clipboard.writeText(text).then(() => alert('Profile copied to clipboard!'));
         }
     </script>
     <script src="/tools/assets/theme.js"></script>
     <script src="/tools/assets/api.js"></script>
     <script src="/tools/assets/lang.js"></script>
     <script src="/tools/assets/outbound.js"></script>
-
 </body>
 </html>
