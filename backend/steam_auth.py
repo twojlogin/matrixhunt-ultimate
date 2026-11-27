@@ -7,6 +7,7 @@ ID in a signed session cookie. Epic/GOG offer nothing equivalent without a
 registered developer client (secret), which is why only Steam is supported.
 """
 import re
+import sys
 import time
 import calendar
 from urllib.parse import urlencode
@@ -55,23 +56,34 @@ def _nonce_fresh(nonce):
     return True
 
 
+def _dbg(msg):
+    print(f"[steam-auth] {msg}", file=sys.stderr)
+
+
 def verify_response(params, expected_host):
     """Validate an OpenID return against Steam. Returns steamid or None."""
+    import sys
     if params.get("openid.mode") != "id_res":
+        _dbg(f"bad mode: {params.get('openid.mode')!r}")
         return None
     if params.get("openid.op_endpoint") != STEAM_OPENID:
+        _dbg(f"bad op_endpoint: {params.get('openid.op_endpoint')!r}")
         return None
     claimed = params.get("openid.claimed_id", "")
     m = CLAIMED_RE.match(claimed)
     if not m or params.get("openid.identity") != claimed:
+        _dbg("bad claimed_id/identity")
         return None
     try:
         host = params.get("openid.return_to", "").split("/")[2]
     except IndexError:
+        _dbg("bad return_to")
         return None
     if host != expected_host:
+        _dbg(f"host mismatch: {host!r} != {expected_host!r}")
         return None
     if not _nonce_fresh(params.get("openid.response_nonce", "")):
+        _dbg("stale or replayed nonce")
         return None
     # The actual proof: ask Steam directly whether it signed this.
     check = dict(params)
@@ -79,9 +91,11 @@ def verify_response(params, expected_host):
     try:
         r = requests.post(STEAM_OPENID, data=check, timeout=15)
         body = r.text
-    except Exception:
+    except Exception as e:
+        _dbg(f"check_authentication request failed: {e}")
         return None
     if "is_valid:true" not in body.replace(" ", ""):
+        _dbg(f"Steam rejected signature: {body.strip()[:200]!r}")
         return None
     return m.group(1)
 
