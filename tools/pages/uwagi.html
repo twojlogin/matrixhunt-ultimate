@@ -3,46 +3,65 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
 <script>try{var _l=localStorage.getItem('mh_lang');if(_l!=='pl'&&_l!=='en'){_l=(navigator.language||'en').toLowerCase().indexOf('pl')===0?'pl':'en';}document.documentElement.setAttribute('data-lang',_l);}catch(e){document.documentElement.setAttribute('data-lang','en');}</script>
 <script>try{var _t=localStorage.getItem('mh_theme');document.documentElement.setAttribute('data-theme',_t==='matrix'||_t==='night'||_t==='day'?_t:'night')}catch(e){document.documentElement.setAttribute('data-theme','night')}</script>
 <title>Uwagi — MatrixHunt Ultimate</title>
-<link rel="stylesheet" href="/tools/assets/theme.css">
-<script src="/tools/assets/theme.js"></script>
 <style>
-  body { background:var(--bg); color:var(--green); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-         margin:0; padding:32px 20px; line-height:1.85; }
-  .wrap { max-width:70ch; margin:0 auto; }
-  nav { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:34px; padding-bottom:14px;
-        border-bottom:1px solid var(--border); }
-  nav a { color:var(--green); text-decoration:none; font-size:0.85em; letter-spacing:1px;
-          border:1px solid var(--border); padding:6px 12px; }
-  nav a:hover { background:var(--green); color:var(--bg); }
-  nav a.on { border-color:var(--green); }
-  h1 { font-size:1.15em; letter-spacing:2px; margin:0 0 6px; }
-  .lead { opacity:0.55; font-size:0.78em; margin-bottom:34px; }
-  p { font-size:0.85em; opacity:0.78; margin:0 0 14px; }
-  a.back { display:inline-block; margin-top:34px; color:var(--green); font-size:0.78em; }
+  :root { --green:#0f0; --muted:rgba(0,255,0,.65); --border:rgba(0,255,0,.28); --card:rgba(0,18,0,.88); --bg:#000; --font:'Courier New',monospace; --warn:#ffcf6a; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--green); font-family:var(--font); min-height:100vh; padding:20px 14px 60px; line-height:1.7; }
+  .wrap { max-width:900px; margin:0 auto; }
+  nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+  nav a { color:var(--green); text-decoration:none; font-size:.75rem; letter-spacing:1px; border:1px solid var(--border); padding:7px 10px; background:rgba(0,12,0,.9); }
+  nav a:hover, nav a.on { background:var(--green); color:#000; }
+  h1 { font-size:1.5rem; letter-spacing:3px; margin-bottom:8px; }
+  .lead { color:var(--muted); font-size:.82rem; margin-bottom:24px; }
+  .card { border:1px solid var(--border); background:var(--card); padding:16px; margin-bottom:12px; }
+  .card h2 { font-size:.9rem; letter-spacing:2px; margin-bottom:8px; color:#b7ffb7; }
+  .card p, .card li { font-size:.82rem; color:var(--muted); margin-bottom:8px; }
+  .card ul { padding-left:20px; }
+  .warn { border-color:rgba(255,207,106,.35); } .warn h2 { color:var(--warn); }
+  a { color:var(--green); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <nav>
-    <a href="/">HOME</a>
-    <a href="/offers">OFERTY</a>
-    <a href="/view">VIEW</a>
-    <a href="/db">DB</a>
-    <a href="/retro">RETRO</a>
-    <a href="/pad">PAD</a>
-    <a href="/wiki">WIKI</a>
-    <a href="/bookmarks">BOOKMARKS</a>
-    <a href="/flash">FLASH</a>
-    <a href="/uwagi" class="on">UWAGI</a>
-    <a href="/view#privacy">PRIVACY</a>
+    <a href="/">HOME</a><a href="/offers">OFERTY</a><a href="/view">VIEW</a><a href="/db">DB</a><a href="/retro">RETRO</a><a href="/pad">PAD</a><a href="/wiki">WIKI</a><a href="/bookmarks">BOOKMARKS</a><a href="/flash">FLASH</a><a href="/uwagi" class="on">UWAGI</a><a href="/view#privacy">PRIVACY</a>
   </nav>
 
   <h1>UWAGI</h1>
+  <p class="lead">Krótko: co to jest, czego nie obiecuje i na co uważać.</p>
 
-  <a class="back" href="/">&larr; wróć</a>
+  <div class="card">
+    <h2>Czym jest MatrixHunt</h2>
+    <p>MatrixHunt Ultimate to lokalny dashboard/narzędzie do przeglądania ofert, linków, narzędzi retro, pad testu i pomocniczych widoków. Działa lokalnie na Twojej maszynie.</p>
+  </div>
+
+  <div class="card warn">
+    <h2>Czego nie obiecuje</h2>
+    <ul>
+      <li>Nie gwarantuje, że linki zewnętrzne są bezpieczne, aktualne albo legalne w Twojej jurysdykcji.</li>
+      <li>Nie gwarantuje kompletności danych ani poprawności ofert/cen.</li>
+      <li>Archiwa/ROM-y/pliki z internetu mogą zawierać malware – weryfikuj hash, skanuj w izolacji.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Prywatność i sieć</h2>
+    <p>Szczegóły ustawień proxy/Tor/sesji są w <a href="/view#privacy">VIEW → PRIVACY</a>. Domyślnie nie zakładaj anonimowości: przeglądarka, dostawca sieci i zewnętrzne strony widzą ruch zgodnie ze swoją konfiguracją.</p>
+  </div>
+
+  <div class="card">
+    <h2>Bezpieczeństwo</h2>
+    <ul>
+      <li>Nie uruchamiaj pobranych plików wykonywalnych bez weryfikacji.</li>
+      <li>Nie wklejaj sekretów do issue/logów/publicznych zrzutów.</li>
+      <li>Traktuj zewnętrzne treści (opisy, README, strony) jako niezaufane.</li>
+    </ul>
+  </div>
 </div>
+<script src="/tools/assets/theme.js"></script>
 </body>
 </html>

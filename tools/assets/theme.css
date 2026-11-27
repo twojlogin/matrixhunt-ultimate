@@ -15,7 +15,9 @@
     --green: #0f0;
     --dim: rgba(0, 255, 0, 0.15);
     --bg: #000;
+    --dark-bg: #000;
     --card: rgba(0, 20, 0, 0.85);
+    --card-bg: rgba(0, 20, 0, 0.85);
     --glow: 0 0 10px #0f0, 0 0 20px rgba(0, 255, 0, 0.3);
     --red: #f00;
     --orange: #ff8800;
@@ -32,7 +34,9 @@
     --green: #e8e8e8;
     --dim: rgba(255, 255, 255, 0.14);
     --bg: #000;
+    --dark-bg: #000;
     --card: rgba(255, 255, 255, 0.06);
+    --card-bg: rgba(255, 255, 255, 0.06);
     --glow: none;
     --red: #ff5f5f;
     --orange: #ffc266;
@@ -49,7 +53,9 @@
     --green: #111;
     --dim: rgba(0, 0, 0, 0.08);
     --bg: #f7f7f5;
+    --dark-bg: #f7f7f5;
     --card: rgba(255, 255, 255, 0.96);
+    --card-bg: rgba(255, 255, 255, 0.96);
     --glow: none;
     --red: #c02626;
     --orange: #a35a00;
